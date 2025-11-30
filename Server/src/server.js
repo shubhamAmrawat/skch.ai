@@ -2,7 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import connectDB from './config/database.js';
 import aiRoutes from './routes/aiRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -10,6 +14,11 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// ===================
+// Database Connection
+// ===================
+connectDB();
 
 // ===================
 // Security Middleware
@@ -36,16 +45,17 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // ===================
-// Body Parser
+// Body Parser & Cookies
 // ===================
 // Increase limit for base64 images
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(cookieParser());
 
 // ===================
 // Request Logging
@@ -60,18 +70,31 @@ app.use((req, res, next) => {
 // API Routes
 // ===================
 app.use('/api', aiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // ===================
 // Root Endpoint
 // ===================
 app.get('/', (req, res) => {
   res.json({
-    name: 'Sketch2Code API',
+    name: 'sktch.ai API',
     version: '1.0.0',
     description: 'AI-powered wireframe to React code generation',
     endpoints: {
       health: 'GET /api/health',
-      generate: 'POST /api/generate'
+      generate: 'POST /api/generate',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        logout: 'POST /api/auth/logout',
+        refresh: 'POST /api/auth/refresh',
+        me: 'GET /api/auth/me',
+      },
+      upload: {
+        avatar: 'POST /api/upload/avatar',
+        removeAvatar: 'DELETE /api/upload/avatar',
+      }
     }
   });
 });
@@ -121,10 +144,10 @@ app.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
-║   🎨 Sketch2Code API Server                           ║
+║   🎨 sktch.ai API Server                              ║
 ║                                                       ║
-║   Server:  http://localhost:${PORT}                   ║
-║   Health:  http://localhost:${PORT}/api/health        ║
+║   Server:  http://localhost:${PORT}                      ║
+║   Health:  http://localhost:${PORT}/api/health           ║
 ║                                                       ║
 ║   Allowed Origins:                                    ║
 ║   ${allowedOrigins.join(', ').padEnd(50)}║
@@ -132,12 +155,22 @@ app.listen(PORT, () => {
 ╚═══════════════════════════════════════════════════════╝
   `);
 
-  // Warn if API key is not configured
+  // Warn if essential env vars are not configured
   if (!process.env.OPENAI_API_KEY) {
     console.warn('\n⚠️  WARNING: OPENAI_API_KEY is not set in environment variables!');
-    console.warn('   Create a .env file with your API key.\n');
+  }
+
+  if (!process.env.JWT_SECRET) {
+    console.warn('⚠️  WARNING: JWT_SECRET is not set. Using default (unsafe for production)!');
+  }
+
+  if (!process.env.DB_URI) {
+    console.warn('⚠️  WARNING: DB_URI is not set. Database connection will fail!');
+  }
+
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.warn('⚠️  WARNING: Cloudinary credentials not fully configured. Avatar upload will fail!');
   }
 });
 
 export default app;
-

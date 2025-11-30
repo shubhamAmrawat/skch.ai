@@ -1,7 +1,8 @@
-import { ChevronDown, Download, Home } from 'lucide-react';
+import { ChevronDown, Download, Home, LogOut, User, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from './Logo';
+import { useAuth } from '../hooks/useAuth';
 
 interface HeaderProps {
   selectedModel: string;
@@ -16,8 +17,26 @@ const models = [
 
 export function Header({ selectedModel, onModelChange }: HeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const currentModel = models.find((m) => m.id === selectedModel) || models[0];
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
+
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <header className="h-14 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 flex items-center justify-between px-4 relative z-50">
@@ -109,7 +128,88 @@ export function Header({ selectedModel, onModelChange }: HeaderProps) {
             Export
           </span>
         </button>
+
+        {/* User Menu */}
+        {user && (
+          <div className="relative ml-2">
+            <button
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/50 transition-all"
+            >
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full object-cover border-2 border-slate-700"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold border-2 border-slate-700">
+                  {getInitials(user.name)}
+                </div>
+              )}
+              <ChevronDown
+                className={`w-4 h-4 text-slate-400 transition-transform duration-200 hidden sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {/* User Dropdown */}
+            {isUserMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsUserMenuOpen(false)}
+                />
+                <div className="absolute top-full mt-2 right-0 w-56 bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-20">
+                  {/* User Info */}
+                  <div className="p-4 border-b border-slate-700/50">
+                    <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="p-1.5">
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        navigate('/sketches');
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                      <span className="text-sm">My Sketches</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        navigate('/profile');
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="text-sm">Profile</span>
+                    </button>
+
+                    <div className="my-1 h-px bg-slate-700/50" />
+
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm">Logout</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
 }
+
