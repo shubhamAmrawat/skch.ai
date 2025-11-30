@@ -154,8 +154,8 @@ Fill in the following:
 Click "Environment Variables" and add:
 
 ```
-VITE_API_BASE_URL=https://your-backend.onrender.com/api
-VITE_AUTH_API_BASE_URL=https://your-backend.onrender.com/api/auth
+VITE_API_BASE_URL=https://skch-ai-backend.onrender.com
+VITE_AUTH_API_BASE_URL=https://skch-ai-backend.onrender.com/api/auth
 ```
 
 **Replace `your-backend.onrender.com` with your actual Render backend URL!**

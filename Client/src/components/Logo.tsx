@@ -11,7 +11,7 @@ const sizes = {
 };
 
 export function Logo({ size = 'md', showText = true, className = '' }: LogoProps) {
-  const { icon, text } = sizes[size];
+  const { text } = sizes[size];
 
   return (
     <div className={`flex items-center gap-2.5 ${className} border border-purple-500/20 rounded-lg px-4 py-0.5 shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 transition-shadow duration-200 cursor-cell`}>
