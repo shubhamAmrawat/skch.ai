@@ -1,0 +1,37 @@
+# ================================
+# sktch.ai Server - .gitignore
+# ================================
+
+# Dependencies
+node_modules/
+
+# Environment files (CRITICAL - API keys!)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.staging
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+dist/
+build/
+
+# Uploaded files (if any)
+uploads/
+
+# PM2
+.pm2/

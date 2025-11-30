@@ -1,0 +1,48 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="64" x2="64" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+    <!-- Subtle inner glow -->
+    <radialGradient id="innerGlow" cx="0.5" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bgGrad)"/>
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#innerGlow)"/>
+
+  <!-- Inner container -->
+  <rect x="14" y="14" width="36" height="36" rx="10" fill="rgba(15,23,42,0.18)"/>
+
+  <!-- Left side: rough sketch stroke -->
+  <path
+    d="M19 35 C21 28, 22 25, 21 22 C20 19, 22 18, 24 19 C27 21, 28 23, 27 26 C26 29, 24 31, 24 33 C24 36, 26 38, 29 39"
+    fill="none"
+    stroke="#F9FAFB"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.9"
+  />
+
+  <!-- Right side: structured UI blocks -->
+  <!-- Header bar -->
+  <rect x="31" y="19" width="14" height="5" rx="2.5" fill="#E5E7EB" opacity="0.95"/>
+  <!-- Main card -->
+  <rect x="31" y="27" width="14" height="10" rx="2.5" fill="#F9FAFB" opacity="0.95"/>
+  <!-- Small rows -->
+  <rect x="31" y="40" width="6" height="3" rx="1.5" fill="#E5E7EB" opacity="0.95"/>
+  <rect x="39" y="40" width="6" height="3" rx="1.5" fill="#E5E7EB" opacity="0.7"/>
+
+  <!-- Code hint: <> at bottom-left -->
+  <path d="M22 42 L19 45 L22 48" stroke="#E5E7EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+  <path d="M26 42 L29 45 L26 48" stroke="#E5E7EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+
+  <!-- Tiny AI orbit dot -->
+  <circle cx="45" cy="18" r="1.8" fill="#A5B4FC" opacity="0.95"/>
+</svg>

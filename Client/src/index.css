@@ -1,0 +1,343 @@
+/* Custom font imports - must come first */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* CSS Variables for theming */
+:root {
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0f172a;
+  color: #e2e8f0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Dotted grid background pattern */
+.dotted-grid {
+  background-image: radial-gradient(circle, #475569 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Code editor styling */
+.code-editor {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+/* Skeleton loader animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #1e293b 0%,
+    #334155 50%,
+    #1e293b 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Pulse animation for generating state */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Loading bar animation for page transition */
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+}
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.5s ease-in-out infinite;
+}
+
+/* Transition utilities */
+.transition-panel {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tldraw customizations - Clean minimal theme */
+.tldraw-container {
+  --color-background: #0f172a;
+  --color-panel: #1e293b;
+}
+
+.tldraw-container .tl-background {
+  background-color: #0f172a !important;
+}
+
+/* Make tldraw toolbar blend with our theme */
+.tldraw-container .tlui-layout {
+  --color-background: #1e293b;
+  --color-low: #334155;
+  --color-muted-1: #475569;
+  --color-muted-2: #64748b;
+  --color-text: #e2e8f0;
+  --color-primary: #6366f1;
+}
+
+/* ===== HIDE UNNECESSARY TLDRAW UI ELEMENTS ===== */
+
+/* Hide the style panel (color picker on top right) */
+.tldraw-container .tlui-style-panel__wrapper,
+.tldraw-container .tlui-style-panel {
+  display: none !important;
+}
+
+/* Hide the top left menu bar (keep it minimal) */
+.tldraw-container .tlui-menu-zone {
+  display: none !important;
+}
+
+/* Hide the action zone (undo/redo at top) */
+.tldraw-container .tlui-action-zone {
+  display: none !important;
+}
+
+/* Hide the navigation/zoom controls and minimap */
+.tldraw-container .tlui-navigation-zone,
+.tldraw-container .tlui-minimap,
+.tldraw-container [class*="minimap"],
+.tldraw-container .tlui-debug-panel,
+.tldraw-container [class*="navigation"],
+.tldraw-container button[title*="Zoom"],
+.tldraw-container button[title*="minimap"] {
+  display: none !important;
+}
+
+/* Hide any remaining bottom-left elements */
+.tldraw-container .tlui-layout__bottom .tlui-navigation-zone {
+  display: none !important;
+}
+
+/* Hide the "Get a license" watermark */
+.tldraw-container [href*="tldraw.dev"],
+.tldraw-container button[title*="license"],
+.tldraw-container a[href*="tldraw"],
+.tldraw-container [class*="watermark"] {
+  display: none !important;
+}
+
+/* ===== POSITION THE TOOLS TOOLBAR ===== */
+
+/* Position the main tools toolbar */
+.tldraw-container .tlui-layout__bottom {
+  left: 16px !important;
+  right: auto !important;
+  transform: none !important;
+  bottom: 16px !important;
+}
+
+.tldraw-container .tlui-layout__bottom__main {
+  justify-content: flex-start !important;
+}
+
+/* Make the toolbar match our theme */
+.tldraw-container .tlui-toolbar {
+  background: rgba(30, 41, 59, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(71, 85, 105, 0.5) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Style the toolbar buttons */
+.tldraw-container .tlui-toolbar__tools button {
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.tldraw-container .tlui-toolbar__tools button:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+}
+
+.tldraw-container .tlui-toolbar__tools button[data-state="selected"],
+.tldraw-container .tlui-toolbar__tools button[aria-pressed="true"] {
+  background: rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Hide the extras/overflow menu */
+.tldraw-container .tlui-toolbar__extras {
+  display: none !important;
+}
+
+/* ===== CLEANER CANVAS ===== */
+
+/* Add subtle grid pattern to canvas */
+.tldraw-container .tl-background {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(99, 102, 241, 0.1) 1px, transparent 0) !important;
+  background-size: 24px 24px !important;
+}
+
+/* ===== AUTH PAGE ANIMATIONS ===== */
+
+/* Float animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Float delayed animation */
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(5deg);
+  }
+}
+
+.animate-float-delayed {
+  animation: float-delayed 5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* Slow float animation */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-5deg);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+/* Slow bounce animation */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.05);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 4s ease-in-out infinite;
+}
+
+/* Pulse glow animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Orbit animation for decorative elements */
+@keyframes orbit {
+  0% {
+    transform: rotate(0deg) translateX(20px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(20px) rotate(-360deg);
+  }
+}
+
+.animate-orbit {
+  animation: orbit 20s linear infinite;
+}
+
+/* Shimmer animation for cards */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
