@@ -153,19 +153,22 @@ sktch.ai/
 
 ## 📦 Deployment
 
-### Frontend (Vercel)
+For detailed deployment instructions, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**
 
-1. Connect your GitHub repo to Vercel
-2. Set root directory to `Client`
-3. Build command: `npm run build`
-4. Output directory: `dist`
+### Quick Overview
 
-### Backend (Railway / Render)
+**Frontend (Vercel):**
+- Connect GitHub repo → Set root to `Client` → Deploy
+- Add environment variables: `VITE_API_BASE_URL`, `VITE_AUTH_API_BASE_URL`
 
-1. Connect your GitHub repo
-2. Set root directory to `Server`
-3. Add environment variables
-4. Start command: `npm start`
+**Backend (Render):**
+- Connect GitHub repo → Set root to `Server` → Deploy
+- Add environment variables: `DB_URI`, `JWT_SECRET`, `OPENAI_API_KEY`, `CLOUDINARY_*`, `ALLOWED_ORIGINS`
+
+**Database (MongoDB Atlas):**
+- Create free cluster → Get connection string → Add to Render env vars
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete step-by-step guide with troubleshooting.
 
 ## 🤝 Contributing
 

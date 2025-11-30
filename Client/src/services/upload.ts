@@ -1,6 +1,16 @@
 import { tokenStorage } from './auth';
 
-const API_BASE_URL = 'http://localhost:3000/api/upload';
+// Use environment variable in production, fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '/api/upload');
+
+// Debug: Log to verify environment variable is loaded
+if (import.meta.env.DEV) {
+  console.log('[Upload] Environment Variables:', {
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+    'Using (final)': API_BASE_URL,
+    'MODE': import.meta.env.MODE,
+  });
+}
 
 export interface UploadResponse {
   success: boolean;

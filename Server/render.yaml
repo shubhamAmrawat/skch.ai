@@ -1,0 +1,25 @@
+# Render Blueprint Configuration
+# This file helps configure your Render service automatically
+# You can use this when creating a new service, or Render will auto-detect it
+
+services:
+  - type: web
+    name: sktch-ai-backend
+    env: node
+    plan: free  # Change to 'starter' or 'standard' for production
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # Add these in Render dashboard after creating service:
+      # - DB_URI (MongoDB Atlas connection string)
+      # - JWT_SECRET (random 32+ char string)
+      # - OPENAI_API_KEY
+      # - CLOUDINARY_CLOUD_NAME
+      # - CLOUDINARY_API_KEY
+      # - CLOUDINARY_API_SECRET
+      # - ALLOWED_ORIGINS (your Vercel frontend URL)
+

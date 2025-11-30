@@ -1,4 +1,14 @@
-const API_BASE_URL = 'http://localhost:3000/api/auth';
+// Use environment variable in production, fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_AUTH_API_BASE_URL;
+
+// Debug: Log to verify environment variable is loaded
+if (import.meta.env.DEV) {
+  console.log('[Auth] Environment Variables:', {
+    VITE_AUTH_API_BASE_URL: import.meta.env.VITE_AUTH_API_BASE_URL,
+    'Using (final)': API_BASE_URL,
+    'MODE': import.meta.env.MODE,
+  });
+}
 
 // ===================
 // Types
