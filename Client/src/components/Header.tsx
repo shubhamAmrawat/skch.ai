@@ -1,4 +1,4 @@
-import { ChevronDown, Download, Home, LogOut, User, FolderOpen } from 'lucide-react';
+import { ChevronDown, Home, LogOut, User, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from './Logo';
@@ -78,7 +78,7 @@ export function Header({ selectedModel, onModelChange }: HeaderProps) {
             />
           </button>
 
-          
+       
           {isDropdownOpen && (
             <>
               <div
@@ -121,13 +121,6 @@ export function Header({ selectedModel, onModelChange }: HeaderProps) {
             </>
           )}
         </div> */}
-
-        <button className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/30 hover:bg-slate-800 transition-all group">
-          <Download className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors" />
-          <span className="text-sm font-medium text-slate-300 group-hover:text-slate-200 hidden sm:block">
-            Export
-          </span>
-        </button>
 
         {/* User Menu */}
         {user && (

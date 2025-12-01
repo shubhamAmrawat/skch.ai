@@ -1,4 +1,4 @@
-import { Eye, Code2, Send, Loader2, Maximize2, MessageSquare, User, Bot, Sparkles, Copy, Check } from 'lucide-react';
+import { Eye, Code2, Send, Loader2, Maximize2, MessageSquare, User, Bot, Sparkles, Copy, Check, Download } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { LivePreview } from './LivePreview';
 import { generateFullPageHTML } from '../utils/previewHtml';
@@ -78,6 +78,25 @@ export function CodePreviewPanel({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  const handleExportCode = () => {
+    if (!generatedCode) return;
+
+    // Create a blob with the code content
+    const blob = new Blob([generatedCode], { type: 'text/typescript' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'GeneratedComponent.tsx';
+    document.body.appendChild(link);
+    link.click();
+
+    // Clean up
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
   return (
     <div className="h-full flex flex-col bg-slate-950 relative overflow-hidden">
       {/* Subtle gradient overlay */}
@@ -122,15 +141,27 @@ export function CodePreviewPanel({
               </span>
             </div>
           )}
-          {generatedCode && activeTab === 'preview' && (
-            <button
-              onClick={handleOpenFullscreen}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 hover:border-slate-600 rounded-lg transition-all"
-              title="Open in new tab"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Fullscreen</span>
-            </button>
+          {generatedCode && (
+            <>
+              <button
+                onClick={handleExportCode}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 hover:border-slate-600 rounded-lg transition-all"
+                title="Download code as .tsx file"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              {activeTab === 'preview' && (
+                <button
+                  onClick={handleOpenFullscreen}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 hover:border-slate-600 rounded-lg transition-all"
+                  title="Open in new tab"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Fullscreen</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
