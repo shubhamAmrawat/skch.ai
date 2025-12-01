@@ -72,6 +72,7 @@ export function generateFullPageHTML(code: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer-when-downgrade">
   <title>Generated UI Preview</title>
   
   <!-- Tailwind CSS -->
@@ -111,6 +112,18 @@ export function generateFullPageHTML(code: string): string {
       max-width: 100%;
       height: auto;
       display: block;
+    }
+    /* Fix for absolutely positioned images */
+    img[class*="absolute"] {
+      position: absolute;
+    }
+    /* Ensure image containers with relative positioning have proper sizing */
+    div[class*="relative"]:has(img[class*="absolute"]) {
+      min-height: 300px;
+    }
+    /* Fallback for browsers without :has() support */
+    div[class*="flex-1"][class*="relative"] {
+      min-height: 300px;
     }
   </style>
   
@@ -189,11 +202,42 @@ export function generateFullPageHTML(code: string): string {
     // Make React hooks available globally
     const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer } = React;
     
+    // Helper function to fix images after React renders
+    function fixImages() {
+      const images = document.querySelectorAll('img[src^="http"]');
+      images.forEach(function(img) {
+        // Add referrerpolicy for better compatibility
+        if (!img.hasAttribute('referrerpolicy')) {
+          img.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        }
+        
+        // Fix for absolutely positioned images in relative containers
+        const parent = img.parentElement;
+        if (parent && parent.classList.contains('relative') && img.classList.contains('absolute')) {
+          // If parent has no height, set a minimum height
+          if (parent.offsetHeight === 0 || parent.offsetHeight < 200) {
+            // Try to get height from flex context or set a reasonable default
+            const computedStyle = window.getComputedStyle(parent);
+            if (computedStyle.flex === '1 1 0%' || parent.classList.contains('flex-1')) {
+              parent.style.minHeight = '400px';
+            } else {
+              parent.style.minHeight = '300px';
+            }
+          }
+        }
+      });
+    }
+    
     try {
       ${cleanedCode}
       
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(exports.default || Component || App));
+      
+      // Fix images after React renders (multiple attempts to catch async rendering)
+      setTimeout(fixImages, 50);
+      setTimeout(fixImages, 200);
+      setTimeout(fixImages, 500);
     } catch (error) {
       console.error('Render error:', error);
       document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px; font-family: monospace;">Error: ' + error.message + '</div>';

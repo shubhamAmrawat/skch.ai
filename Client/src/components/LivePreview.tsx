@@ -117,7 +117,7 @@ export function LivePreview({ code }: LivePreviewProps) {
         ref={iframeRef}
         title="Live Preview"
         className="w-full h-full border-0"
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts allow-same-origin allow-popups"
       />
     </div>
   );
@@ -136,6 +136,7 @@ function generateIframeContent(code: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer-when-downgrade">
   <title>Preview</title>
   
   <!-- Tailwind CSS -->
@@ -177,6 +178,18 @@ function generateIframeContent(code: string): string {
       max-width: 100%;
       height: auto;
       display: block;
+    }
+    /* Fix for absolutely positioned images */
+    img[class*="absolute"] {
+      position: absolute;
+    }
+    /* Ensure image containers with relative positioning have proper sizing */
+    div[class*="relative"]:has(img[class*="absolute"]) {
+      min-height: 300px;
+    }
+    /* Fallback for browsers without :has() support */
+    div[class*="flex-1"][class*="relative"] {
+      min-height: 300px;
     }
     /* Ensure full-width sections work */
     .w-full {
@@ -261,12 +274,79 @@ function generateIframeContent(code: string): string {
     // Make React hooks available globally (since imports are removed)
     const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer } = React;
     
+    // Helper function to fix images after React renders
+    function fixImages() {
+      const images = document.querySelectorAll('img[src^="http"]');
+      images.forEach(function(img) {
+        // Add referrerpolicy for better compatibility
+        if (!img.hasAttribute('referrerpolicy')) {
+          img.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        }
+        // Note: We don't add crossorigin by default as it can cause CORS errors
+        // if the image server doesn't support CORS. Images should load fine without it.
+        
+        // Fix for absolutely positioned images in relative containers
+        const parent = img.parentElement;
+        if (parent && parent.classList.contains('relative') && img.classList.contains('absolute')) {
+          // If parent has no height, set a minimum height
+          if (parent.offsetHeight === 0 || parent.offsetHeight < 200) {
+            // Try to get height from flex context or set a reasonable default
+            const computedStyle = window.getComputedStyle(parent);
+            if (computedStyle.flex === '1 1 0%' || parent.classList.contains('flex-1')) {
+              parent.style.minHeight = '400px';
+            } else {
+              parent.style.minHeight = '300px';
+            }
+          }
+        }
+        
+        // Handle image load errors
+        img.addEventListener('error', function() {
+          console.warn('Image failed to load:', img.src);
+          // Log for debugging
+          if (img.parentElement) {
+            console.log('Parent container:', img.parentElement.className);
+            console.log('Parent height:', img.parentElement.offsetHeight);
+          }
+        }, { once: true });
+      });
+    }
+    
     try {
       ${cleanedCode}
       
       // Get the default export and render it
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(exports.default || Component || App));
+      
+      // Fix images after React renders (multiple attempts to catch async rendering)
+      setTimeout(fixImages, 50);
+      setTimeout(fixImages, 200);
+      setTimeout(fixImages, 500);
+      
+      // Use MutationObserver to catch images added later
+      const observer = new MutationObserver(function(mutations) {
+        let shouldFix = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.addedNodes.length > 0) {
+            mutation.addedNodes.forEach(function(node) {
+              if (node.nodeType === 1) { // Element node
+                if (node.tagName === 'IMG' || node.querySelectorAll('img').length > 0) {
+                  shouldFix = true;
+                }
+              }
+            });
+          }
+        });
+        if (shouldFix) {
+          setTimeout(fixImages, 50);
+        }
+      });
+      
+      observer.observe(document.getElementById('root'), {
+        childList: true,
+        subtree: true
+      });
       
       // Notify parent that rendering is complete
       window.parent.postMessage({ type: 'ready' }, '*');
