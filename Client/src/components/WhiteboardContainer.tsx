@@ -45,7 +45,7 @@ export function WhiteboardContainer({
   return (
     <div className="h-full flex flex-col bg-slate-900 relative overflow-hidden">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-linear-to-br from-indigo-500/2 via-transparent to-purple-500/2 pointer-events-none z-10" />
+      {/* <div className="absolute inset-0 bg-linear-to-br from-indigo-500/2 via-transparent to-purple-500/2 pointer-events-none z-10" /> */}
 
       {/* Tldraw Canvas */}
       <div className="flex-1 relative overflow-hidden tldraw-container">

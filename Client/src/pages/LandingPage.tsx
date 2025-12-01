@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Palette, Code2, Wand2, MousePointer2, Layers, Sparkles } from 'lucide-react';
+import { ArrowRight, Zap, Palette, Code2, Wand2, MousePointer2, Layers, Sparkles, Github } from 'lucide-react';
 import { LandingHeader } from '../components/LandingHeader';
 import { ParticleBackground } from '../components/ParticleBackground';
 import { Logo } from '../components/Logo';
@@ -148,9 +148,21 @@ export function LandingPage() {
       <footer className="py-8 px-6 border-t border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo size="sm" />
-          <p className="text-sm text-slate-500">
-            © 2024 sktch.ai. Built with ❤️ and AI.
-          </p>
+          <div className="flex items-center gap-4">
+            
+            <p className="text-sm text-slate-500">
+              © 2024 sktch.ai. Built with ❤️
+            </p>
+            <a
+              href="https://github.com/shubhamAmrawat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+            >
+              <Github className="w-5 h-5" />
+              <span className="text-sm">shubhamAmrawat</span>
+            </a>
+          </div>
         </div>
       </footer>
     </div>

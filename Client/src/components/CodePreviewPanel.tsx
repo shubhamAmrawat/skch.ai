@@ -79,12 +79,12 @@ export function CodePreviewPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900 relative overflow-hidden">
+    <div className="h-full flex flex-col bg-slate-950 relative overflow-hidden">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-linear-to-bl from-purple-500/2 via-transparent to-indigo-500/2 pointer-events-none z-0" />
 
       {/* Tab Header */}
-      <div className="relative z-10 flex items-center justify-between px-3 py-2.5 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center justify-between px-3 py-2.5 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-sm">
         {/* Tab Buttons */}
         <div className="flex items-center gap-1 p-1 bg-slate-800/50 rounded-xl border border-slate-700/30">
           <TabButton
