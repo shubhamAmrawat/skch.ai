@@ -9,19 +9,11 @@ interface HeaderProps {
   onModelChange: (model: string) => void;
 }
 
-const models = [
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', color: 'bg-emerald-400' },
-  { id: 'gemini-pro', name: 'Gemini Pro', provider: 'Google', color: 'bg-blue-400' },
-  { id: 'claude-3', name: 'Claude 3', provider: 'Anthropic', color: 'bg-amber-400' },
-];
-
-export function Header({ selectedModel, onModelChange }: HeaderProps) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function Header(_props: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const currentModel = models.find((m) => m.id === selectedModel) || models[0];
 
   const handleLogout = async () => {
     await logout();
