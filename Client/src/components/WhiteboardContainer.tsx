@@ -52,6 +52,7 @@ export function WhiteboardContainer({
         <Tldraw
           onMount={handleMount}
           inferDarkMode
+          licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
         />
 
         {/* Empty State Overlay */}
