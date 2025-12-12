@@ -58,20 +58,13 @@ export function LoginPage() {
   };
 
   // Google OAuth login - using implicit flow to get ID token
-  const handleGoogleLogin = useGoogleLogin({
+  const triggerGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsGoogleLoading(true);
       setError(null);
       setFieldErrors({});
 
       try {
-        // Get user info from Google to verify the token
-        const googleUserInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`,
-          },
-        }).then((res) => res.json());
-
         // useGoogleLogin returns an access_token
         // The backend will verify it by fetching user info from Google
         const response = await loginWithGoogle(tokenResponse.access_token);
@@ -93,6 +86,11 @@ export function LoginPage() {
       setIsGoogleLoading(false);
     },
   });
+
+  const handleGoogleLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    triggerGoogleLogin();
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">

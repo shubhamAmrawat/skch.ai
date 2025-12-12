@@ -57,7 +57,7 @@ export function SignupPage() {
   };
 
   // Google OAuth login/signup
-  const handleGoogleLogin = useGoogleLogin({
+  const triggerGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsGoogleLoading(true);
       setError(null);
@@ -85,6 +85,11 @@ export function SignupPage() {
       setIsGoogleLoading(false);
     },
   });
+
+  const handleGoogleLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    triggerGoogleLogin();
+  };
 
   const passwordStrength = getPasswordStrength(formData.password);
 
