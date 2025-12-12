@@ -11,6 +11,7 @@ import {
   login as loginApi,
   register as registerApi,
   logout as logoutApi,
+  loginWithGoogle as loginWithGoogleApi,
   getMe,
   updateProfile as updateProfileApi,
   changePassword as changePasswordApi,
@@ -86,6 +87,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return response;
   }, []);
 
+  // Login with Google
+  const loginWithGoogle = useCallback(async (idToken: string): Promise<AuthResponse> => {
+    const response = await loginWithGoogleApi(idToken);
+
+    if (response.success && response.data?.user) {
+      setUser(response.data.user);
+    }
+
+    return response;
+  }, []);
+
   // Logout
   const logout = useCallback(async () => {
     await logoutApi();
@@ -122,6 +134,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: !!user,
     login,
     register,
+    loginWithGoogle,
     logout,
     updateProfile,
     changePassword,

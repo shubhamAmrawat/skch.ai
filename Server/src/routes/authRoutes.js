@@ -12,6 +12,7 @@ import {
   changePassword,
   getSessions,
 } from '../controllers/authController.js';
+import { googleAuth } from '../controllers/googleAuthController.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -159,6 +160,13 @@ router.post('/login', authLimiter, loginValidation, login);
  * @access  Public (requires valid refresh token)
  */
 router.post('/refresh', refreshLimiter, refreshToken);
+
+/**
+ * @route   POST /api/auth/google
+ * @desc    Authenticate with Google OAuth
+ * @access  Public
+ */
+router.post('/google', authLimiter, googleAuth);
 
 // ===================
 // Protected Routes

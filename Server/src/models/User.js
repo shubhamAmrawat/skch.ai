@@ -23,7 +23,10 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function () {
+        // Password is required only for local auth
+        return this.authProvider === 'local' || !this.authProvider;
+      },
       minlength: [8, 'Password must be at least 8 characters'],
       select: false, // Don't include password in queries by default
     },
@@ -105,8 +108,11 @@ userSchema.virtual('isLocked').get(function () {
 // Pre-save middleware - Hash password
 // ===================
 userSchema.pre('save', async function () {
-  // Only hash password if it's modified (or new)
-  if (!this.isModified('password')) return;
+  // Only hash password if it's modified (or new) and exists
+  if (!this.isModified('password') || !this.password) return;
+
+  // Skip password hashing for Google OAuth users
+  if (this.authProvider === 'google') return;
 
   // Generate salt with cost factor of 12
   const salt = await bcrypt.genSalt(12);
@@ -126,6 +132,10 @@ userSchema.pre('save', async function () {
  * Compare provided password with stored hash
  */
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  // Google OAuth users don't have passwords
+  if (this.authProvider === 'google' || !this.password) {
+    return false;
+  }
   return bcrypt.compare(candidatePassword, this.password);
 };
 

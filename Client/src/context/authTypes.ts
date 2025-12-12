@@ -6,6 +6,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   login: (data: LoginData) => Promise<AuthResponse>;
   register: (data: RegisterData) => Promise<AuthResponse>;
+  loginWithGoogle: (idToken: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   updateProfile: (data: { name?: string; avatar?: string }) => Promise<AuthResponse>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthResponse>;

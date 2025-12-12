@@ -49,6 +49,10 @@ export interface LoginData {
   password: string;
 }
 
+export interface GoogleAuthData {
+  idToken: string;
+}
+
 // ===================
 // Token Management
 // ===================
@@ -378,6 +382,38 @@ export async function changePassword(currentPassword: string, newPassword: strin
  */
 export function isAuthenticated(): boolean {
   return !!tokenStorage.getAccessToken();
+}
+
+/**
+ * Login with Google OAuth
+ * @param token - Google ID token or access token
+ */
+export async function loginWithGoogle(token: string): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: token }), // Send as accessToken since useGoogleLogin returns access tokens
+      credentials: 'include',
+    });
+
+    const result: AuthResponse = await response.json();
+
+    if (result.success && result.data) {
+      tokenStorage.setAccessToken(result.data.accessToken);
+      tokenStorage.setRefreshToken(result.data.refreshToken);
+      tokenStorage.setUser(result.data.user);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('[Auth] Google login error:', error);
+    return {
+      success: false,
+      error: 'Network error',
+      message: 'Unable to connect to server. Please try again.',
+    };
+  }
 }
 
 /**

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthProvider';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
@@ -8,60 +9,65 @@ import { SignupPage } from './pages/SignupPage';
 import { MySketchesPage } from './pages/MySketchesPage';
 import { ProfilePage } from './pages/ProfilePage';
 
+// Get Google Client ID from environment variables
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<LandingPage />} />
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<LandingPage />} />
 
-          {/* Auth routes - redirect to app if already logged in */}
-          <Route
-            path="/login"
-            element={
-              <PublicOnlyRoute>
-                <LoginPage />
-              </PublicOnlyRoute>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <PublicOnlyRoute>
-                <SignupPage />
-              </PublicOnlyRoute>
-            }
-          />
+            {/* Auth routes - redirect to app if already logged in */}
+            <Route
+              path="/login"
+              element={
+                <PublicOnlyRoute>
+                  <LoginPage />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <PublicOnlyRoute>
+                  <SignupPage />
+                </PublicOnlyRoute>
+              }
+            />
 
-          {/* Protected routes - require authentication */}
-          <Route
-            path="/app"
-            element={
-              <ProtectedRoute>
-                <SketchApp />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/sketches"
-            element={
-              <ProtectedRoute>
-                <MySketchesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+            {/* Protected routes - require authentication */}
+            <Route
+              path="/app"
+              element={
+                <ProtectedRoute>
+                  <SketchApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sketches"
+              element={
+                <ProtectedRoute>
+                  <MySketchesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   );
 }
 
