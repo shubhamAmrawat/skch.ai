@@ -162,7 +162,7 @@ export function SignupPage() {
                   Full name
                 </label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="text"
                     id="name"
@@ -170,7 +170,7 @@ export function SignupPage() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="John Doe"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.name ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.name ? 'border-red-500' : 'border-slate-700'
                       }`}
                   />
                 </div>
@@ -185,7 +185,7 @@ export function SignupPage() {
                   Email address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="email"
                     id="email"
@@ -193,7 +193,7 @@ export function SignupPage() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@example.com"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-700'
                       }`}
                   />
                 </div>
@@ -208,7 +208,7 @@ export function SignupPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     id="password"
@@ -216,7 +216,7 @@ export function SignupPage() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="••••••••"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-700'
                       }`}
                   />
                   <button
@@ -261,16 +261,16 @@ export function SignupPage() {
               {/* Terms */}
               <p className="text-xs text-slate-500">
                 By signing up, you agree to our{' '}
-                <Link to="/terms" className="text-indigo-400 hover:text-indigo-300">Terms of Service</Link>
+                <Link to="/terms" className="text-slate-400 hover:text-slate-300">Terms of Service</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-indigo-400 hover:text-indigo-300">Privacy Policy</Link>
+                <Link to="/privacy" className="text-slate-400 hover:text-slate-300">Privacy Policy</Link>
               </p>
 
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-indigo-500 to-purple-500 rounded-xl font-semibold text-white hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-slate-800 to-slate-900 rounded-xl font-semibold text-white hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg shadow-black/20 hover:shadow-black/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isLoading ? (
                   <>
@@ -289,7 +289,7 @@ export function SignupPage() {
             {/* Login link */}
             <p className="text-center text-slate-400 mt-8">
               Already have an account?{' '}
-              <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+              <Link to="/login" className="text-slate-400 hover:text-slate-300 font-medium transition-colors">
                 Sign in
               </Link>
             </p>
@@ -320,11 +320,11 @@ export function SignupPage() {
             {/* Arrow/Flow indicator */}
             <div className="absolute left-40 top-24 z-20">
               <div className="flex items-center gap-2 animate-pulse">
-                <div className="w-16 h-0.5 bg-linear-to-r from-indigo-500 to-purple-500" />
-                <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg animate-pulse-glow">
+                <div className="w-16 h-0.5 bg-linear-to-r from-slate-700 to-slate-800" />
+                <div className="w-8 h-8 rounded-full bg-linear-to-br from-slate-800 to-black flex items-center justify-center shadow-lg animate-pulse-glow">
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
-                <div className="w-16 h-0.5 bg-linear-to-r from-purple-500 to-pink-500" />
+                <div className="w-16 h-0.5 bg-linear-to-r from-slate-800 to-slate-900" />
               </div>
             </div>
 
@@ -334,21 +334,21 @@ export function SignupPage() {
                 <Layers className="w-3 h-3" /> Generated UI
               </div>
               <div className="space-y-2">
-                <div className="h-6 bg-linear-to-r from-indigo-500/30 to-purple-500/30 rounded-lg flex items-center px-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                <div className="h-6 bg-linear-to-r from-slate-700/30 to-slate-800/30 rounded-lg flex items-center px-2">
+                  <div className="w-2 h-2 rounded-full bg-slate-500" />
                   <div className="ml-2 h-2 w-16 bg-slate-600 rounded" />
                 </div>
                 <div className="flex gap-2">
-                  <div className="h-14 flex-1 bg-linear-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-2">
+                  <div className="h-14 flex-1 bg-linear-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-2">
                     <div className="w-full h-2 bg-slate-600 rounded mb-1" />
                     <div className="w-3/4 h-2 bg-slate-700 rounded" />
                   </div>
-                  <div className="h-14 flex-1 bg-linear-to-br from-indigo-500/20 to-cyan-500/20 rounded-lg p-2">
+                  <div className="h-14 flex-1 bg-linear-to-br from-slate-700/20 to-slate-800/20 rounded-lg p-2">
                     <div className="w-full h-2 bg-slate-600 rounded mb-1" />
                     <div className="w-3/4 h-2 bg-slate-700 rounded" />
                   </div>
                 </div>
-                <div className="h-8 bg-linear-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+                <div className="h-8 bg-linear-to-r from-slate-800 to-black rounded-lg flex items-center justify-center">
                   <span className="text-[10px] text-white font-medium">Get Started</span>
                 </div>
               </div>
@@ -367,8 +367,8 @@ export function SignupPage() {
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
               <defs>
                 <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgba(99, 102, 241, 0.3)" />
-                  <stop offset="100%" stopColor="rgba(139, 92, 246, 0.3)" />
+                  <stop offset="0%" stopColor="rgba(0, 0, 0, 0.3)" />
+                  <stop offset="100%" stopColor="rgba(20, 20, 20, 0.3)" />
                 </linearGradient>
               </defs>
             </svg>
@@ -383,8 +383,8 @@ export function SignupPage() {
               'Chat-based refinements',
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-                <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                  <Check className="w-4 h-4 text-indigo-400" />
+                <div className="w-6 h-6 rounded-full bg-slate-800/20 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-slate-400" />
                 </div>
                 <span className="text-slate-300">{feature}</span>
               </div>

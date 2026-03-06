@@ -161,7 +161,7 @@ export function LoginPage() {
                   Email address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="email"
                     id="email"
@@ -169,7 +169,7 @@ export function LoginPage() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@example.com"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-700'
                       }`}
                   />
                 </div>
@@ -184,12 +184,12 @@ export function LoginPage() {
                   <label htmlFor="password" className="block text-sm font-medium text-slate-300">
                     Password
                   </label>
-                  <Link to="/forgot-password" className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+                  <Link to="/forgot-password" className="text-sm text-slate-400 hover:text-slate-300 transition-colors">
                     Forgot password?
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     id="password"
@@ -197,7 +197,7 @@ export function LoginPage() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="••••••••"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-700'
                       }`}
                   />
                   <button
@@ -218,7 +218,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-indigo-500 to-purple-500 rounded-xl font-semibold text-white hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-slate-800 to-slate-900 rounded-xl font-semibold text-white hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg shadow-black/20 hover:shadow-black/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isLoading ? (
                   <>
@@ -237,7 +237,7 @@ export function LoginPage() {
             {/* Sign up link */}
             <p className="text-center text-slate-400 mt-8">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+              <Link to="/signup" className="text-slate-400 hover:text-slate-300 font-medium transition-colors">
                 Sign up free
               </Link>
             </p>
@@ -263,7 +263,7 @@ export function LoginPage() {
               {/* Code preview mockup */}
               <div className="space-y-3 font-mono text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-purple-400">const</span>
+                  <span className="text-slate-400">const</span>
                   <span className="text-blue-400">UI</span>
                   <span className="text-slate-400">=</span>
                   <span className="text-green-400">sketch</span>
@@ -271,7 +271,7 @@ export function LoginPage() {
                   <span className="text-slate-400">;</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-purple-400">return</span>
+                  <span className="text-slate-400">return</span>
                   <span className="text-slate-400">&lt;</span>
                   <span className="text-blue-400">Component</span>
                   <span className="text-slate-400">/&gt;</span>
@@ -281,18 +281,18 @@ export function LoginPage() {
               </div>
 
               {/* Sparkle decoration */}
-              <div className="absolute -top-4 -right-4 w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg animate-pulse-glow">
+              <div className="absolute -top-4 -right-4 w-12 h-12 bg-linear-to-br from-slate-800 to-black rounded-2xl flex items-center justify-center shadow-lg animate-pulse-glow">
                 <Wand2 className="w-6 h-6 text-white" />
               </div>
             </div>
 
             {/* Floating elements around the card */}
-            <div className="absolute -top-8 -left-8 w-16 h-16 bg-indigo-500/20 backdrop-blur-lg rounded-2xl border border-indigo-500/30 flex items-center justify-center animate-float-delayed shadow-lg">
-              <Code2 className="w-8 h-8 text-indigo-400" />
+            <div className="absolute -top-8 -left-8 w-16 h-16 bg-slate-800/20 backdrop-blur-lg rounded-2xl border border-slate-700/30 flex items-center justify-center animate-float-delayed shadow-lg">
+              <Code2 className="w-8 h-8 text-slate-400" />
             </div>
 
-            <div className="absolute -bottom-6 -left-12 w-14 h-14 bg-purple-500/20 backdrop-blur-lg rounded-2xl border border-purple-500/30 flex items-center justify-center animate-float-slow shadow-lg">
-              <Palette className="w-7 h-7 text-purple-400" />
+            <div className="absolute -bottom-6 -left-12 w-14 h-14 bg-slate-800/20 backdrop-blur-lg rounded-2xl border border-slate-700/30 flex items-center justify-center animate-float-slow shadow-lg">
+              <Palette className="w-7 h-7 text-slate-400" />
             </div>
 
             <div className="absolute top-1/2 -right-10 w-12 h-12 bg-pink-500/20 backdrop-blur-lg rounded-xl border border-pink-500/30 flex items-center justify-center animate-bounce-slow shadow-lg">

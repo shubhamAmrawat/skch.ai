@@ -14,7 +14,7 @@ export function Logo({ size = 'md', showText = true, className = '' }: LogoProps
   const { text } = sizes[size];
 
   return (
-    <div className={`flex items-center gap-2.5 ${className} border border-purple-500/20 rounded-lg px-4 py-0.5 shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 transition-shadow duration-200 cursor-cell`}>
+    <div className={`flex items-center gap-2.5 ${className} border border-slate-700/20 rounded-lg px-4 py-0.5 shadow-md shadow-black/20 hover:shadow-black/30 transition-shadow duration-200 cursor-cell`}>
       {/* Custom SVG Logo */}
       {/* <LogoIcon size={icon} /> */}
 
@@ -22,7 +22,7 @@ export function Logo({ size = 'md', showText = true, className = '' }: LogoProps
       {showText && (
         <span className={`font-bold tracking-tight ${text}`}>
           <span className="text-white">sktch</span>
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-purple-400">.ai</span>
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-slate-400 to-slate-500">.ai</span>
         </span>
       )}
     </div>

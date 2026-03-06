@@ -85,10 +85,10 @@ body {
 /* Pulse animation for generating state */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   }
   50% {
-    box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -135,7 +135,7 @@ body {
   --color-muted-1: #475569;
   --color-muted-2: #64748b;
   --color-text: #e2e8f0;
-  --color-primary: #6366f1;
+  --color-primary: #1a1a1a;
 }
 
 /* ===== HIDE UNNECESSARY TLDRAW UI ELEMENTS ===== */
@@ -211,12 +211,12 @@ body {
 }
 
 .tldraw-container .tlui-toolbar__tools button:hover {
-  background: rgba(99, 102, 241, 0.2) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
 }
 
 .tldraw-container .tlui-toolbar__tools button[data-state="selected"],
 .tldraw-container .tlui-toolbar__tools button[aria-pressed="true"] {
-  background: rgba(99, 102, 241, 0.3) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Hide the extras/overflow menu */
@@ -229,7 +229,7 @@ body {
 /* Add subtle grid pattern to canvas */
 .tldraw-container .tl-background {
   background-image: 
-    radial-gradient(circle at 1px 1px, rgba(99, 102, 241, 0.1) 1px, transparent 0) !important;
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.2) 1px, transparent 0) !important;
   background-size: 24px 24px !important;
 }
 
@@ -296,10 +296,10 @@ body {
 /* Pulse glow animation */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   }
   50% {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
   }
 }
 

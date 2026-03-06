@@ -14,11 +14,11 @@ interface FloatingShape {
 }
 
 const colors = [
-  'rgba(99, 102, 241, 0.15)',   // indigo
-  'rgba(139, 92, 246, 0.15)',   // purple
-  'rgba(236, 72, 153, 0.12)',   // pink
-  'rgba(59, 130, 246, 0.12)',   // blue
-  'rgba(16, 185, 129, 0.10)',   // emerald
+  'rgba(0, 0, 0, 0.25)',        // black
+  'rgba(20, 20, 20, 0.25)',     // dark gray-black
+  'rgba(30, 30, 30, 0.20)',     // lighter black
+  'rgba(10, 10, 10, 0.20)',     // very dark black
+  'rgba(15, 15, 15, 0.18)',     // medium black
 ];
 
 function createShape(width: number, height: number): FloatingShape {
@@ -131,8 +131,8 @@ export function AuthBackground() {
         canvas.height * 0.5,
         canvas.width * 0.8
       );
-      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.05)');
-      gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.03)');
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+      gradient.addColorStop(0.5, 'rgba(20, 20, 20, 0.10)');
       gradient.addColorStop(1, 'transparent');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -146,8 +146,8 @@ export function AuthBackground() {
         canvas.height * 0.6,
         canvas.width * 0.6
       );
-      gradient2.addColorStop(0, 'rgba(236, 72, 153, 0.04)');
-      gradient2.addColorStop(0.5, 'rgba(139, 92, 246, 0.02)');
+      gradient2.addColorStop(0, 'rgba(10, 10, 10, 0.12)');
+      gradient2.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)');
       gradient2.addColorStop(1, 'transparent');
       ctx.fillStyle = gradient2;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -189,8 +189,8 @@ export function AuthBackground() {
       // Draw mouse glow
       if (mouse.x > 0 && mouse.y > 0) {
         const mouseGradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 200);
-        mouseGradient.addColorStop(0, 'rgba(139, 92, 246, 0.08)');
-        mouseGradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.04)');
+        mouseGradient.addColorStop(0, 'rgba(0, 0, 0, 0.20)');
+        mouseGradient.addColorStop(0.5, 'rgba(20, 20, 20, 0.10)');
         mouseGradient.addColorStop(1, 'transparent');
         ctx.fillStyle = mouseGradient;
         ctx.beginPath();

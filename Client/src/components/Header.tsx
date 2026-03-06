@@ -33,7 +33,7 @@ export function Header(_props: HeaderProps) {
   return (
     <header className="h-14 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 flex items-center justify-between px-4 relative z-50">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-linear-to-r from-indigo-500/2 via-transparent to-purple-500/2 pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-r from-black/5 via-transparent to-black/5 pointer-events-none" />
 
       {/* Left: Logo & Navigation */}
       <div className="flex items-center gap-4 relative">
@@ -43,7 +43,7 @@ export function Header(_props: HeaderProps) {
           className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 hover:border-slate-600 transition-all group"
           title="Back to Home"
         >
-          <Home className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors" />
+          <Home className="w-4 h-4 text-slate-400 group-hover:text-slate-300 transition-colors" />
         </Link>
 
         {/* Divider */}
@@ -90,7 +90,7 @@ export function Header(_props: HeaderProps) {
                         setIsDropdownOpen(false);
                       }}
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${selectedModel === model.id
-                        ? 'bg-indigo-500/15 text-white'
+                        ? 'bg-slate-800/50 text-white'
                         : 'hover:bg-slate-700/50 text-slate-300'
                         }`}
                     >
@@ -128,7 +128,7 @@ export function Header(_props: HeaderProps) {
                   className="w-8 h-8 rounded-full object-cover border-2 border-slate-700"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold border-2 border-slate-700">
+                <div className="w-8 h-8 rounded-full bg-linear-to-br from-slate-800 to-black flex items-center justify-center text-white text-xs font-semibold border-2 border-slate-700">
                   {getInitials(user.name)}
                 </div>
               )}

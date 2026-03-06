@@ -100,7 +100,7 @@ export function CodePreviewPanel({
   return (
     <div className="h-full flex flex-col bg-slate-950 relative overflow-hidden">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-linear-to-bl from-purple-500/2 via-transparent to-indigo-500/2 pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-linear-to-bl from-black/5 via-transparent to-black/5 pointer-events-none z-0" />
 
       {/* Tab Header */}
       <div className="relative z-10 flex items-center justify-between px-3 py-2.5 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-sm">
@@ -131,12 +131,12 @@ export function CodePreviewPanel({
         {/* Right Actions */}
         <div className="flex items-center gap-2">
           {isGenerating && !isIterating && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border border-slate-700/30 rounded-lg">
               <div className="relative w-3 h-3">
-                <div className="absolute inset-0 rounded-full border-2 border-indigo-500/30" />
-                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-400 animate-spin" />
+                <div className="absolute inset-0 rounded-full border-2 border-slate-700/30" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-slate-400 animate-spin" />
               </div>
-              <span className="text-xs font-medium text-indigo-300">
+              <span className="text-xs font-medium text-slate-300">
                 Generating...
               </span>
             </div>
@@ -257,24 +257,24 @@ function GeneratingState() {
         {/* Animated loader */}
         <div className="relative w-20 h-20">
           <div className="absolute inset-0 rounded-full border-2 border-slate-700/50" />
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
-          <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-purple-500 animate-spin [animation-duration:1.5s] [animation-direction:reverse]" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-slate-600 animate-spin" />
+          <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-slate-700 animate-spin [animation-duration:1.5s] [animation-direction:reverse]" />
           <div className="absolute inset-4 rounded-full border-2 border-transparent border-t-cyan-400 animate-spin [animation-duration:2s]" />
           <div className="absolute inset-6 rounded-full bg-slate-800/80 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
+            <Sparkles className="w-4 h-4 text-slate-400 animate-pulse" />
           </div>
         </div>
 
         {/* Tip */}
         <div className="text-center">
-          <p className="text-sm font-medium text-indigo-400 transition-all">
+          <p className="text-sm font-medium text-slate-300 transition-all">
             {currentTip}
           </p>
           <div className="flex items-center justify-center gap-1 mt-3">
             {GENERATING_TIPS.map((_, i) => (
               <div
                 key={i}
-                className={`h-1 rounded-full transition-all duration-300 ${i === currentTipIndex ? 'bg-indigo-500 w-4' : 'bg-slate-700 w-1'
+                className={`h-1 rounded-full transition-all duration-300 ${i === currentTipIndex ? 'bg-slate-500 w-4' : 'bg-slate-700 w-1'
                   }`}
               />
             ))}
@@ -375,13 +375,13 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
                 className={`flex gap-2.5 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {message.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-indigo-400" />
+                  <div className="w-7 h-7 rounded-lg bg-slate-800/30 flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 text-slate-400" />
                   </div>
                 )}
                 <div
                   className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl ${message.role === 'user'
-                    ? 'bg-indigo-500 text-white rounded-br-lg'
+                    ? 'bg-slate-800 text-white rounded-br-lg'
                     : 'bg-slate-800/80 text-slate-200 rounded-bl-lg border border-slate-700/30'
                     }`}
                 >
@@ -399,12 +399,12 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
             ))}
             {isIterating && (
               <div className="flex gap-2.5 justify-start">
-                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4 text-indigo-400" />
+                <div className="w-7 h-7 rounded-lg bg-slate-800/30 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 text-slate-400" />
                 </div>
                 <div className="max-w-[75%] px-3.5 py-2.5 rounded-2xl bg-slate-800/80 text-slate-200 rounded-bl-lg border border-slate-700/30">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
                     <p className="text-sm text-slate-300">Applying changes...</p>
                   </div>
                 </div>
@@ -425,13 +425,13 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
             onKeyDown={onKeyDown}
             placeholder="Describe what to change..."
             disabled={isGenerating}
-            className="w-full px-4 py-2.5 pr-12 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
+            className="w-full px-4 py-2.5 pr-12 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500/40 focus:ring-2 focus:ring-slate-500/10 transition-all disabled:opacity-50"
           />
           <button
             onClick={onSend}
             disabled={!inputMessage.trim() || isGenerating}
             title="Send"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-3.5 h-3.5 text-white" />
           </button>
@@ -545,7 +545,7 @@ function tokenizeLine(line: string): Token[] {
   while (remaining.length > 0) {
     const keywordMatch = remaining.match(/^(import|export|from|const|function|return|default)\b/);
     if (keywordMatch) {
-      tokens.push({ text: keywordMatch[0], className: 'text-purple-400' });
+      tokens.push({ text: keywordMatch[0], className: 'text-slate-400' });
       remaining = remaining.slice(keywordMatch[0].length);
       continue;
     }
