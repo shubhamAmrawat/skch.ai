@@ -41,6 +41,9 @@ export function CodePreviewPanel({
   // Show "Applying changes..." when last message is user and we're generating
   const isIterating = isGenerating && conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1]?.role === 'user';
 
+  // Show GeneratingState only when we have no code yet (waiting for first token). Once streaming starts, show code.
+  const showGeneratingState = isGenerating && generatedCode.length < 30;
+
   // Refine-only mode: split layout - left = Preview/Code, right = Chat (canvas hidden by SketchApp)
   if (refineOnlyMode) {
     const leftTab = activeTab === 'code' ? 'code' : 'preview';
@@ -50,12 +53,12 @@ export function CodePreviewPanel({
         <ResizableSplitPane
           left={
             <div className="h-full overflow-hidden bg-white rounded-tl-xl border border-slate-200">
-              {isGenerating && !isIterating ? (
+              {showGeneratingState ? (
                 <GeneratingState />
               ) : leftTab === 'preview' ? (
-                <PreviewView code={generatedCode} />
+                <PreviewView code={generatedCode} isStreaming={isGenerating} />
               ) : (
-                <CodeView code={generatedCode} />
+                <CodeView code={generatedCode} isStreaming={isGenerating} />
               )}
             </div>
           }
@@ -85,12 +88,12 @@ export function CodePreviewPanel({
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
       <div className="flex-1 overflow-hidden relative z-10">
-        {isGenerating && !isIterating ? (
+        {showGeneratingState ? (
           <GeneratingState />
         ) : activeTab === 'preview' ? (
-          <PreviewView code={generatedCode} />
+          <PreviewView code={generatedCode} isStreaming={isGenerating} />
         ) : activeTab === 'code' ? (
-          <CodeView code={generatedCode} />
+          <CodeView code={generatedCode} isStreaming={isGenerating} />
         ) : (
           <ChatView
             messages={conversationHistory}
@@ -190,7 +193,7 @@ function GeneratingState() {
   );
 }
 
-function PreviewView({ code }: { code: string }) {
+function PreviewView({ code, isStreaming = false }: { code: string; isStreaming?: boolean }) {
   if (!code) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -202,6 +205,23 @@ function PreviewView({ code }: { code: string }) {
         </h3>
         <p className="text-sm text-slate-500 max-w-[240px]">
           Draw a wireframe and click "Generate UI" to see the preview
+        </p>
+      </div>
+    );
+  }
+
+  // During streaming, don't attempt to render incomplete code - show placeholder
+  if (isStreaming) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-white rounded-tl-xl border border-slate-200">
+        <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center mb-4">
+          <Sparkles className="w-8 h-8 text-indigo-500 animate-pulse" />
+        </div>
+        <h3 className="text-base font-medium text-slate-700 mb-1.5">
+          Generating preview...
+        </h3>
+        <p className="text-sm text-slate-500 max-w-[260px]">
+          Code is streaming. Switch to the Code tab to see it live, or wait for completion to see the preview here.
         </p>
       </div>
     );
@@ -336,14 +356,22 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
   );
 }
 
-function CodeView({ code }: { code: string }) {
+function CodeView({ code, isStreaming = false }: { code: string; isStreaming?: boolean }) {
   const [copied, setCopied] = useState(false);
+  const codeEndRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // Auto-scroll to bottom when code is streaming (instant to keep up with rapid updates)
+  useEffect(() => {
+    if (isStreaming && code) {
+      codeEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+    }
+  }, [code, isStreaming]);
 
   if (!code) {
     return (
@@ -398,6 +426,7 @@ function CodeView({ code }: { code: string }) {
         <pre className="p-4 overflow-auto code-editor text-slate-700 text-sm leading-relaxed bg-slate-50/50">
           <code>
             {formatCodeWithHighlighting(code)}
+            <div ref={codeEndRef} className="h-px" aria-hidden="true" />
           </code>
         </pre>
       </div>

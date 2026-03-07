@@ -84,6 +84,142 @@ function toAnthropicFormat(openaiMessages) {
 }
 
 /**
+ * Send SSE event to client
+ */
+function sendSSE(res, data) {
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+/**
+ * Stream UI code generation (SSE)
+ * POST /api/generate with stream: true in body
+ */
+export async function generateUIStream(req, res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+  if (typeof res.flushHeaders === 'function') {
+    res.flushHeaders();
+  }
+
+  try {
+    const { image, history, feedback, currentCode, model: requestedModel } = req.body;
+    const model = requestedModel || 'gpt-4o';
+
+    console.log('[AI] Stream request received:', {
+      model,
+      isClaude: isClaudeModel(model),
+      hasImage: !!image,
+      hasFeedback: !!feedback,
+      hasCurrentCode: !!currentCode,
+    });
+
+    if (!image && !feedback) {
+      sendSSE(res, { type: 'error', error: 'Either "image" or "feedback" with "currentCode" is required' });
+      return res.end();
+    }
+
+    const isTextIteration = Boolean(feedback && currentCode);
+    const isIterativeDrawing = Boolean(image && currentCode && !feedback);
+
+    let messages = [
+      { role: 'system', content: (isTextIteration || isIterativeDrawing) ? ITERATION_PROMPT : SYSTEM_PROMPT },
+    ];
+    if (history && Array.isArray(history)) {
+      messages = messages.concat(history);
+    }
+    if (isTextIteration) {
+      messages = messages.concat(buildIterationMessage(currentCode, feedback));
+    } else if (isIterativeDrawing) {
+      messages = messages.concat(buildRegenerateFromDrawingMessage(image, currentCode));
+    } else {
+      messages = messages.concat(buildInitialMessage(image));
+    }
+
+    const logType = isTextIteration ? 'iteration' : isIterativeDrawing ? 'iterative-drawing' : 'generation';
+    console.log(`[AI] Streaming ${logType} with model: ${model}`);
+
+    let fullText = '';
+    let usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
+    if (isClaudeModel(model)) {
+      const client = getAnthropicClient();
+      const { system, messages: anthropicMessages } = toAnthropicFormat(messages);
+      const stream = client.messages.stream({
+        model,
+        max_tokens: 16384,
+        system,
+        messages: anthropicMessages,
+      });
+
+      stream.on('text', (text) => {
+        fullText += text;
+        sendSSE(res, { type: 'delta', content: text });
+      });
+
+      const message = await stream.finalMessage();
+      if (message.usage) {
+        usage = {
+          promptTokens: message.usage.input_tokens,
+          completionTokens: message.usage.output_tokens,
+          totalTokens: (message.usage.input_tokens || 0) + (message.usage.output_tokens || 0),
+        };
+      }
+    } else {
+      const client = getOpenAIClient();
+      const stream = await client.chat.completions.create({
+        model,
+        max_tokens: 16384,
+        temperature: 0.3,
+        top_p: 0.95,
+        messages,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices?.[0]?.delta?.content;
+        if (delta) {
+          fullText += delta;
+          sendSSE(res, { type: 'delta', content: delta });
+        }
+        if (chunk.usage) {
+          usage = {
+            promptTokens: chunk.usage.prompt_tokens,
+            completionTokens: chunk.usage.completion_tokens,
+            totalTokens: chunk.usage.total_tokens,
+          };
+        }
+      }
+    }
+
+    if (!fullText) {
+      sendSSE(res, { type: 'error', error: 'No content received from AI' });
+      return res.end();
+    }
+
+    const { code: codeWithoutReply, assistantReply } = extractAssistantReply(fullText);
+    let cleanedCode = cleanCodeResponse(codeWithoutReply);
+    cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
+
+    console.log(`[AI] Stream complete, ${cleanedCode.length} characters`);
+
+    sendSSE(res, {
+      type: 'done',
+      code: cleanedCode,
+      assistantReply: assistantReply || null,
+      usage,
+    });
+    res.end();
+  } catch (error) {
+    console.error('[AI] Stream error:', error);
+    const message = error?.message || 'Failed to generate UI';
+    sendSSE(res, { type: 'error', error: message });
+    res.end();
+  }
+}
+
+/**
  * Generate UI code from a wireframe image
  * POST /api/generate
  */

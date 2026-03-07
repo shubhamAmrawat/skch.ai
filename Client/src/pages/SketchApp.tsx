@@ -4,7 +4,7 @@ import { Header } from '../components/Header';
 import { WhiteboardContainer } from '../components/WhiteboardContainer';
 import { CodePreviewPanel } from '../components/CodePreviewPanel';
 import { ResizableSplitPane } from '../components/ResizableSplitPane';
-import { generateUI, iterateUI } from '../services/api';
+import { generateUIStreaming } from '../services/api';
 import { getSketch, createSketch, updateSketch } from '../services/sketchApi';
 import { useAuth } from '../hooks/useAuth';
 import { generateFullPageHTML } from '../utils/previewHtml';
@@ -43,6 +43,7 @@ export function SketchApp() {
   const { isAuthenticated } = useAuth();
   const editorRef = useRef<Editor | null>(null);
   const conversationHistoryRef = useRef<ConversationEntry[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [state, setState] = useState<AppState>({
     isGenerating: false,
@@ -111,8 +112,8 @@ export function SketchApp() {
   conversationHistoryRef.current = state.conversationHistory;
 
   const handleGenerate = useCallback(async (editor: Editor | null) => {
-    // Set generating state and clear any previous errors
-    setState((prev) => ({ ...prev, isGenerating: true, error: null }));
+    // Set generating state, switch to Code tab to show streaming, clear errors
+    setState((prev) => ({ ...prev, isGenerating: true, error: null, activeTab: 'code' }));
 
     try {
       let imageBase64: string | null = null;
@@ -154,35 +155,52 @@ export function SketchApp() {
         return;
       }
 
-      // Call the API - pass currentCode for iterative drawing (refine existing UI from updated sketch)
+      // Abort any previous request
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
+
       const modelToUse = state.selectedModel;
-      console.log('[App] Sending generate request:', {
+      const hadExistingCode = !!state.generatedCode;
+      console.log('[App] Sending streaming generate request:', {
         model: modelToUse,
         hasImage: !!imageBase64,
-        hasCurrentCode: !!state.generatedCode,
+        hasCurrentCode: hadExistingCode,
       });
 
-      const response = await generateUI({
-        image: imageBase64,
-        currentCode: state.generatedCode || undefined,
-        model: modelToUse,
-      });
+      let accumulatedCode = '';
 
-      if (response.success && response.code) {
-        const isIterativeDrawing = !!state.generatedCode;
-        setState((prev) => ({
-          ...prev,
-          isGenerating: false,
-          generatedCode: response.code ?? '',
-          activeTab: 'preview',
-          error: null,
-          // Only reset history on fresh generation; preserve when iterating from canvas
-          conversationHistory: isIterativeDrawing ? prev.conversationHistory : [],
-        }));
-        console.log('[App] Generated code successfully, tokens used:', response.usage?.totalTokens);
-      } else {
-        throw new Error(response.error || 'Failed to generate code');
-      }
+      await generateUIStreaming(
+        {
+          image: imageBase64,
+          currentCode: state.generatedCode || undefined,
+          model: modelToUse,
+        },
+        {
+          onDelta: (chunk) => {
+            accumulatedCode += chunk;
+            setState((prev) => ({ ...prev, generatedCode: accumulatedCode }));
+          },
+          onDone: (result) => {
+            setState((prev) => ({
+              ...prev,
+              isGenerating: false,
+              generatedCode: result.code ?? '',
+              activeTab: 'preview',
+              error: null,
+              conversationHistory: hadExistingCode ? prev.conversationHistory : [],
+            }));
+            console.log('[App] Stream complete, tokens used:', result.usage?.totalTokens);
+          },
+          onError: (errorMsg) => {
+            setState((prev) => ({
+              ...prev,
+              isGenerating: false,
+              error: errorMsg,
+            }));
+          },
+        },
+        abortControllerRef.current.signal
+      );
     } catch (error) {
       console.error('[App] Generation error:', error);
       setState((prev) => ({
@@ -212,50 +230,69 @@ export function SketchApp() {
       ...prev,
       isGenerating: true,
       error: null,
+      activeTab: 'code',
       conversationHistory: [...prev.conversationHistory, userEntry],
     }));
 
-    try {
-      console.log('[App] Calling iterateUI API...');
-      const historyForApi = [...state.conversationHistory, userEntry].map((h) => ({
-        role: h.role,
-        content: h.content,
-      }));
-      const response = await iterateUI(
-        state.generatedCode,
-        feedback.trim(),
-        historyForApi,
-        state.selectedModel
-      );
-      console.log('[App] API response:', { success: response.success, codeLength: response.code?.length });
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
 
-      if (response.success && response.code) {
-        const replyText =
-          response.assistantReply?.trim() ||
-          "I've applied your changes. Check the Preview tab.";
-        const assistantEntry: ConversationEntry = {
-          role: 'assistant',
-          content: replyText,
-          timestamp: new Date(),
-        };
-        setState((prev) => ({
-          ...prev,
-          isGenerating: false,
-          generatedCode: response.code ?? '',
-          activeTab: 'preview',
-          error: null,
-          conversationHistory: [...prev.conversationHistory, assistantEntry],
-        }));
-      } else {
-        throw new Error(response.error || 'Failed to iterate on code');
-      }
+    const historyForApi = [...state.conversationHistory, userEntry].map((h) => ({
+      role: h.role,
+      content: h.content,
+    }));
+
+    let accumulatedCode = '';
+
+    try {
+      await generateUIStreaming(
+        {
+          feedback: feedback.trim(),
+          currentCode: state.generatedCode,
+          history: historyForApi,
+          model: state.selectedModel,
+        },
+        {
+          onDelta: (chunk) => {
+            accumulatedCode += chunk;
+            setState((prev) => ({ ...prev, generatedCode: accumulatedCode }));
+          },
+          onDone: (result) => {
+            const replyText =
+              result.assistantReply?.trim() ||
+              "I've applied your changes. Check the Preview tab.";
+            const assistantEntry: ConversationEntry = {
+              role: 'assistant',
+              content: replyText,
+              timestamp: new Date(),
+            };
+            setState((prev) => ({
+              ...prev,
+              isGenerating: false,
+              generatedCode: result.code ?? '',
+              activeTab: 'preview',
+              error: null,
+              conversationHistory: [...prev.conversationHistory, assistantEntry],
+            }));
+            console.log('[App] Iteration stream complete, tokens:', result.usage?.totalTokens);
+          },
+          onError: (errorMsg) => {
+            setState((prev) => ({
+              ...prev,
+              isGenerating: false,
+              error: errorMsg,
+              conversationHistory: prev.conversationHistory.slice(0, -1),
+            }));
+          },
+        },
+        abortControllerRef.current.signal
+      );
     } catch (error) {
       console.error('[App] Iteration error:', error);
       setState((prev) => ({
         ...prev,
         isGenerating: false,
         error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        // Remove the user message we added since the request failed
         conversationHistory: prev.conversationHistory.slice(0, -1),
       }));
     }
@@ -419,7 +456,10 @@ export function SketchApp() {
           onTabChange: handleTabChange,
           generatedCode: state.generatedCode,
           isGenerating: state.isGenerating,
-          isIterating: false,
+          isIterating:
+            state.isGenerating &&
+            state.conversationHistory.length > 0 &&
+            state.conversationHistory[state.conversationHistory.length - 1]?.role === 'user',
           sketchTitle: state.currentSketchTitle ?? '',
           onSketchTitleChange: (t) =>
             setState((prev) => ({ ...prev, currentSketchTitle: t || null })),
@@ -460,14 +500,33 @@ export function SketchApp() {
       {/* Main Content - Refine-only mode hides canvas, normal mode shows canvas | preview */}
       <main className="flex-1 overflow-hidden">
         {state.refineOnlyMode ? (
-          <CodePreviewPanel
-            activeTab={state.activeTab}
-            generatedCode={state.generatedCode}
-            isGenerating={state.isGenerating}
-            conversationHistory={state.conversationHistory}
-            onIterate={handleIterate}
-            refineOnlyMode
-          />
+          <>
+            {/* Keep canvas mounted but off-screen so we can capture tldrawSnapshot/thumbnail on save */}
+            <div
+              className="fixed -left-[9999px] top-0 w-[800px] h-[600px] overflow-hidden -z-10"
+              aria-hidden="true"
+            >
+              <WhiteboardContainer
+                isGenerating={state.isGenerating}
+                onGenerate={handleGenerate}
+                onClear={handleClear}
+                onEditorMount={(ed) => {
+                  editorRef.current = ed;
+                }}
+                initialSnapshot={state.tldrawSnapshot}
+                sketchId={sketchIdParam}
+                hasExistingCode={!!state.generatedCode}
+              />
+            </div>
+            <CodePreviewPanel
+              activeTab={state.activeTab}
+              generatedCode={state.generatedCode}
+              isGenerating={state.isGenerating}
+              conversationHistory={state.conversationHistory}
+              onIterate={handleIterate}
+              refineOnlyMode
+            />
+          </>
         ) : (
           <ResizableSplitPane
             left={

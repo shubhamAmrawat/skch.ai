@@ -15,20 +15,14 @@ export function LivePreview({ code }: LivePreviewProps) {
     if (!code || !iframeRef.current) return;
 
     const iframe = iframeRef.current;
-
-    // Create the HTML content for the iframe
     const htmlContent = generateIframeContent(code);
-
-    // Write to iframe
     iframe.srcdoc = htmlContent;
   }, [code]);
 
   useEffect(() => {
-    // Check if code has changed
     if (code !== prevCodeRef.current) {
       prevCodeRef.current = code;
       if (code) {
-        // Use a microtask to batch state updates
         queueMicrotask(() => {
           setIsLoading(true);
           setError(null);
@@ -42,7 +36,6 @@ export function LivePreview({ code }: LivePreviewProps) {
 
     renderPreview();
 
-    // Listen for messages from iframe
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'error') {
         setError(event.data.message);
@@ -55,7 +48,6 @@ export function LivePreview({ code }: LivePreviewProps) {
 
     window.addEventListener('message', handleMessage);
 
-    // Timeout for loading
     const timeout = setTimeout(() => {
       setIsLoading(false);
     }, 3000);

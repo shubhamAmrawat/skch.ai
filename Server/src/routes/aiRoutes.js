@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { generateUI, healthCheck } from '../controllers/aiController.js';
+import { generateUI, generateUIStream, healthCheck } from '../controllers/aiController.js';
 
 const router = Router();
 
@@ -18,10 +18,18 @@ router.get('/health', healthCheck);
  *            image: string (base64),
  *            history?: array (previous messages),
  *            feedback?: string (for iterations),
- *            currentCode?: string (for iterations)
+ *            currentCode?: string (for iterations),
+ *            stream?: boolean (if true, returns SSE stream)
  *          }
  */
-router.post('/generate', generateUI);
+router.post('/generate', (req, res) => {
+  const useStream = req.body?.stream === true || req.query?.stream === 'true';
+  if (useStream) {
+    generateUIStream(req, res);
+  } else {
+    generateUI(req, res);
+  }
+});
 
 export default router;
 
