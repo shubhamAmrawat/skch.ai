@@ -1,22 +1,27 @@
+import iconImg from '../assets/icon.png';
+
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
+  iconSize?: number;
   showText?: boolean;
   className?: string;
 }
 
 const sizes = {
   sm: { icon: 28, text: 'text-base' },
-  md: { icon: 36, text: 'text-xl' },
-  lg: { icon: 52, text: 'text-3xl' },
+  md: { icon: 70, text: 'text-[25px]' },
+  lg: { icon: 82, text: 'text-[30px]' },
 };
 
-export function Logo({ size = 'md', showText = true, className = '' }: LogoProps) {
-  const { text } = sizes[size];
+export function Logo({ size = 'md', iconSize, showText = true, className = '' }: LogoProps) {
+  const { icon, text } = sizes[size];
+  const iconPx = iconSize ?? icon;
 
   return (
-    <div className={`flex items-center gap-2.5 ${className} border border-slate-200 rounded-lg px-4 py-0.5 shadow-sm shadow-slate-200/50 hover:shadow-slate-300/50 transition-shadow duration-200 cursor-cell bg-white/80`}>
-      {/* Custom SVG Logo */}
-      {/* <LogoIcon size={icon} /> */}
+    <div
+      className={`flex items-center gap-2.5 ${className} rounded-xl px-4 py-1.5 bg-white  cursor-cell`}
+    >
+      <img src={iconImg} alt="" className="shrink-0" width={iconPx} height={iconPx} />
 
       {/* Text */}
       {showText && (
@@ -30,7 +35,7 @@ export function Logo({ size = 'md', showText = true, className = '' }: LogoProps
 }
 
 // Standalone icon version for favicon-like uses
-export function LogoIcon({ size = 32 }: { size?: number }) {
+export function LogoIcon({ size = 42 }: { size?: number }) {
   return (
     <svg
       width={size}

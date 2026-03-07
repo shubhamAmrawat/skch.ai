@@ -26,6 +26,11 @@ const sketchSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    visibility:{
+      type: String,
+      enum: ['public', 'private'],
+      default: 'private',
+    },
     conversationHistory: {
       type: [
         {
