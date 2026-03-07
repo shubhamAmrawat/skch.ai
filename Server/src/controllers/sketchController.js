@@ -5,9 +5,20 @@ import mongoose from 'mongoose';
  * Create a new sketch
  * POST /api/sketches
  */
+function normalizeConversationHistory(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter((h) => h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string')
+    .map((h) => ({
+      role: h.role,
+      content: String(h.content),
+      timestamp: h.timestamp ? new Date(h.timestamp) : new Date(),
+    }));
+}
+
 export async function createSketch(req, res) {
   try {
-    const { title, code, tldrawSnapshot, thumbnail } = req.body;
+    const { title, code, tldrawSnapshot, thumbnail, conversationHistory } = req.body;
     const userId = req.userId;
 
     if (!code || typeof code !== 'string') {
@@ -24,6 +35,7 @@ export async function createSketch(req, res) {
       code,
       tldrawSnapshot: tldrawSnapshot || null,
       thumbnail: thumbnail || null,
+      conversationHistory: normalizeConversationHistory(conversationHistory),
     });
 
     return res.status(201).json({
@@ -35,6 +47,11 @@ export async function createSketch(req, res) {
           code: sketch.code,
           tldrawSnapshot: sketch.tldrawSnapshot ?? null,
           thumbnail: sketch.thumbnail ?? null,
+          conversationHistory: (sketch.conversationHistory || []).map((h) => ({
+            role: h.role,
+            content: h.content,
+            timestamp: h.timestamp instanceof Date ? h.timestamp.toISOString() : h.timestamp,
+          })),
           createdAt: sketch.createdAt,
           updatedAt: sketch.updatedAt,
         },
@@ -136,6 +153,11 @@ export async function getSketch(req, res) {
           code: sketch.code,
           tldrawSnapshot: sketch.tldrawSnapshot ?? null,
           thumbnail: sketch.thumbnail ?? null,
+          conversationHistory: (sketch.conversationHistory || []).map((h) => ({
+            role: h.role,
+            content: h.content,
+            timestamp: h.timestamp instanceof Date ? h.timestamp.toISOString() : h.timestamp,
+          })),
           createdAt: sketch.createdAt,
           updatedAt: sketch.updatedAt,
         },
@@ -206,6 +228,11 @@ export async function updateSketch(req, res) {
           code: sketch.code,
           tldrawSnapshot: sketch.tldrawSnapshot ?? null,
           thumbnail: sketch.thumbnail ?? null,
+          conversationHistory: (sketch.conversationHistory || []).map((h) => ({
+            role: h.role,
+            content: h.content,
+            timestamp: h.timestamp instanceof Date ? h.timestamp.toISOString() : h.timestamp,
+          })),
           createdAt: sketch.createdAt,
           updatedAt: sketch.updatedAt,
         },

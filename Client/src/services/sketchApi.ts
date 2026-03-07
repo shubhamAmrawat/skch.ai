@@ -63,12 +63,19 @@ async function authApiFetch(
 // Types
 // ===================
 
+export interface ConversationEntry {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string; // ISO string from API
+}
+
 export interface Sketch {
   id: string;
   title: string;
   code: string;
   thumbnail?: string | null;
   tldrawSnapshot?: string | null;
+  conversationHistory?: ConversationEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +114,7 @@ export async function createSketch(params: {
   code: string;
   tldrawSnapshot?: string | null;
   thumbnail?: string | null;
+  conversationHistory?: Array<{ role: string; content: string; timestamp: Date }>;
 }): Promise<CreateSketchResponse> {
   const response = await authApiFetch('/sketches', {
     method: 'POST',
@@ -115,6 +123,11 @@ export async function createSketch(params: {
       code: params.code,
       tldrawSnapshot: params.tldrawSnapshot ?? null,
       thumbnail: params.thumbnail ?? null,
+      conversationHistory: params.conversationHistory?.map((h) => ({
+        role: h.role,
+        content: h.content,
+        timestamp: h.timestamp instanceof Date ? h.timestamp.toISOString() : h.timestamp,
+      })) ?? [],
     }),
   });
 
@@ -171,11 +184,25 @@ export async function getSketch(id: string): Promise<GetSketchResponse> {
  */
 export async function updateSketch(
   id: string,
-  params: { title?: string; code?: string; tldrawSnapshot?: string | null; thumbnail?: string | null }
+  params: {
+    title?: string;
+    code?: string;
+    tldrawSnapshot?: string | null;
+    thumbnail?: string | null;
+    conversationHistory?: Array<{ role: string; content: string; timestamp: Date }>;
+  }
 ): Promise<CreateSketchResponse> {
+  const body: Record<string, unknown> = { ...params };
+  if (params.conversationHistory) {
+    body.conversationHistory = params.conversationHistory.map((h) => ({
+      role: h.role,
+      content: h.content,
+      timestamp: h.timestamp instanceof Date ? h.timestamp.toISOString() : h.timestamp,
+    }));
+  }
   const response = await authApiFetch(`/sketches/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
 
   const data = await response.json();

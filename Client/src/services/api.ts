@@ -13,6 +13,7 @@ if (import.meta.env.DEV) {
 interface GenerateResponse {
   success: boolean;
   code?: string;
+  assistantReply?: string | null;
   error?: string;
   details?: string;
   usage?: {
@@ -27,6 +28,7 @@ interface GenerateRequest {
   feedback?: string;
   currentCode?: string;
   history?: Array<{ role: string; content: string }>;
+  model?: string;
 }
 
 /**
@@ -35,6 +37,13 @@ interface GenerateRequest {
  */
 export async function generateUI(request: GenerateRequest): Promise<GenerateResponse> {
   try {
+    console.log('[API] generateUI request:', {
+      model: request.model,
+      hasImage: !!request.image,
+      hasFeedback: !!request.feedback,
+      hasCurrentCode: !!request.currentCode,
+      historyLength: request.history?.length ?? 0,
+    });
     const response = await fetch(`${API_BASE_URL}/generate`, {
       method: 'POST',
       headers: {
@@ -61,11 +70,15 @@ export async function generateUI(request: GenerateRequest): Promise<GenerateResp
  */
 export async function iterateUI(
   currentCode: string,
-  feedback: string
+  feedback: string,
+  history?: Array<{ role: string; content: string }>,
+  model?: string
 ): Promise<GenerateResponse> {
   return generateUI({
     feedback,
     currentCode,
+    history,
+    model,
   });
 }
 

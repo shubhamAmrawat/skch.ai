@@ -674,6 +674,17 @@ Use picsum.photos, images.unsplash.com, i.pravatar.cc, or illustrations.popsy.co
 7. Maintain consistent border-radius and shadow language across the page.
 
 -------------------------------------------------------------------------------
+## MICRO-INTERACTIONS & MOTION (REQUIRED):
+
+Add subtle motion and transitions to make the UI feel polished and responsive:
+- Interactive elements (buttons, links, cards, nav items): \`transition-all duration-300\` or \`transition-colors duration-200\`
+- Buttons: \`hover:scale-[1.02] active:scale-[0.98]\` for tactile feedback
+- Cards and clickable containers: \`hover:shadow-xl transition-shadow duration-300\`
+- Color changes (hover states): \`transition-colors duration-200\`
+- Tab/selection indicators: use \`transition-all duration-200\` for smooth underline or background changes
+- Avoid jarring instant changes—every interactive state change should have a smooth transition.
+
+-------------------------------------------------------------------------------
 ## ICONS (lucide-react):
 
 LayoutDashboard, Grid3X3, FolderOpen, Users, MessageSquare, Settings,
@@ -693,6 +704,19 @@ Home, Star, Heart, BookOpen, GraduationCap, Trophy
 8. For HIGH-FIDELITY UI: prioritize REPRODUCTION over creativity.
 9. For SKETCHES: prioritize SMART ENHANCEMENT while preserving layout intent.
 10. Navigation MUST be state-driven only and must NOT change window.location or perform real routing.
+
+-------------------------------------------------------------------------------
+## SHADCN/RADIX-STYLE ACCESSIBILITY & SEMANTICS (REQUIRED):
+
+Follow shadcn/ui and Radix-style patterns for accessible, semantic components:
+- Use semantic HTML: <button> for actions, <nav> for navigation, <main> for main content, <aside> for sidebars
+- Add \`role\` and \`aria-*\` where appropriate: \`role="button"\` for clickable divs, \`aria-expanded\` for dropdowns, \`aria-selected\` for tabs
+- Buttons: use \`<button type="button">\` with proper \`disabled\` states; avoid divs for clickable actions
+- Tabs: use \`role="tablist"\`, \`role="tab"\`, \`role="tabpanel"\` with \`aria-selected\` and \`aria-controls\`
+- Dropdowns/menus: \`aria-haspopup="true"\`, \`aria-expanded\` for open state
+- Focus states: ensure \`focus:ring-2 focus:ring-offset-2\` or similar for keyboard navigation
+- Consistent component structure: clear separation of trigger, content, and container elements
+- Use \`cursor-pointer\` only on elements that are actually clickable
 
 -------------------------------------------------------------------------------
 ## ROUTING & NAVIGATION RULES (CRITICAL)
@@ -833,6 +857,14 @@ All new components should:
   - hover:shadow-xl
   - hover:scale-[1.02]
   - transition-all duration-300
+
+------------------------------------------------------------------------------------
+## MICRO-INTERACTIONS & SHADCN-STYLE (WHEN ADDING/MODIFYING UI):
+
+- Add \`transition-all duration-300\` or \`transition-colors duration-200\` to interactive elements
+- Buttons: \`hover:scale-[1.02] active:scale-[0.98]\` for tactile feedback
+- Use semantic HTML and aria-* attributes (role="button", aria-selected, aria-expanded) for accessibility
+- Ensure focus states: \`focus:ring-2 focus:ring-offset-2\` for keyboard navigation
 
 ------------------------------------------------------------------------------------
 ## STEP 4 — RETURN FORMAT
@@ -1106,7 +1138,10 @@ ${currentCode}
 
 USER REQUEST: ${feedback}
 
-Apply this change and return the COMPLETE updated component code. Make sure any new elements are clearly visible (use appropriate colors, sizes, and no hidden classes). Return ONLY the raw code - no markdown formatting or explanations.`
+Apply this change and return the COMPLETE updated component code. Make sure any new elements are clearly visible (use appropriate colors, sizes, and no hidden classes). Return ONLY the raw code - no markdown formatting or explanations.
+
+IMPORTANT: At the very end of your response, after the code, add exactly one line in this format:
+<!-- ASSISTANT_REPLY: A brief, natural, human-friendly summary of what you changed (e.g. "I've added form validation to the email and password fields." or "I've made the header darker and added a search bar."). Write as if talking to the user - warm and specific to their request. -->`
     }
   ];
 }

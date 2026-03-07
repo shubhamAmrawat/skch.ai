@@ -19,6 +19,17 @@ import { useAuth } from '../hooks/useAuth';
 
 type TabType = 'preview' | 'code' | 'chat';
 
+const MODEL_OPTIONS = [
+  { value: 'gpt-4o', label: 'GPT-4o' },
+  { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+  { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+  { value: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+] as const;
+
+function getModelLabel(value: string): string {
+  return MODEL_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
 export interface SketchHeaderControls {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
@@ -40,8 +51,9 @@ interface HeaderProps {
   sketchControls?: SketchHeaderControls;
 }
 
-export function Header({ sketchControls }: HeaderProps) {
+export function Header({ sketchControls, selectedModel, onModelChange }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -113,6 +125,48 @@ export function Header({ sketchControls }: HeaderProps) {
               />
             )}
           </div>
+
+          {/* Model selector */}
+          {selectedModel && onModelChange && (
+            <div className="relative flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all"
+                title="Select AI model"
+              >
+                <span className="truncate max-w-[100px]">{getModelLabel(selectedModel)}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isModelMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isModelMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsModelMenuOpen(false)}
+                  />
+                  <div className="absolute top-full mt-1.5 left-0 w-48 bg-white backdrop-blur-xl border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 overflow-hidden z-20">
+                    {MODEL_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onModelChange(opt.value);
+                          setIsModelMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2.5 text-sm transition-all ${
+                          selectedModel === opt.value
+                            ? 'bg-indigo-50 text-indigo-700 font-medium'
+                            : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Naming input */}
           {generatedCode && (

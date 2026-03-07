@@ -1,19 +1,15 @@
 import { Eye, Code2, Send, Loader2, MessageSquare, User, Bot, Sparkles, Copy, Check } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { LivePreview } from './LivePreview';
+import type { ConversationEntry } from '../pages/SketchApp';
 
 type TabType = 'preview' | 'code' | 'chat';
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
 
 interface CodePreviewPanelProps {
   activeTab: TabType;
   generatedCode: string;
   isGenerating: boolean;
+  conversationHistory: ConversationEntry[];
   onIterate?: (feedback: string) => void;
 }
 
@@ -21,11 +17,10 @@ export function CodePreviewPanel({
   activeTab,
   generatedCode,
   isGenerating,
+  conversationHistory,
   onIterate,
 }: CodePreviewPanelProps) {
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isIterating, setIsIterating] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -34,37 +29,14 @@ export function CodePreviewPanel({
     }
   };
 
-  const prevGeneratingRef = useRef(isGenerating);
-
   const handleSendMessageInternal = useCallback(() => {
     if (!inputMessage.trim() || !onIterate || isGenerating) return;
-
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: inputMessage.trim(),
-      timestamp: new Date(),
-    };
-    setChatMessages(prev => [...prev, userMessage]);
-    setIsIterating(true);
-
     onIterate(inputMessage.trim());
     setInputMessage('');
   }, [inputMessage, onIterate, isGenerating]);
 
-  useEffect(() => {
-    if (prevGeneratingRef.current && !isGenerating && isIterating && generatedCode) {
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: 'Done! I\'ve applied your changes. Check the Preview tab.',
-        timestamp: new Date(),
-      };
-      setTimeout(() => {
-        setChatMessages(prev => [...prev, assistantMessage]);
-        setIsIterating(false);
-      }, 0);
-    }
-    prevGeneratingRef.current = isGenerating;
-  }, [isGenerating, generatedCode, isIterating]);
+  // Show "Applying changes..." when last message is user and we're generating
+  const isIterating = isGenerating && conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1]?.role === 'user';
 
   return (
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
@@ -81,7 +53,7 @@ export function CodePreviewPanel({
           <CodeView code={generatedCode} />
         ) : (
           <ChatView
-            messages={chatMessages}
+            messages={conversationHistory}
             inputMessage={inputMessage}
             setInputMessage={setInputMessage}
             onSend={handleSendMessageInternal}
@@ -203,7 +175,7 @@ function PreviewView({ code }: { code: string }) {
 }
 
 interface ChatViewProps {
-  messages: ChatMessage[];
+  messages: ConversationEntry[];
   inputMessage: string;
   setInputMessage: (value: string) => void;
   onSend: () => void;

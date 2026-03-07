@@ -26,6 +26,16 @@ const sketchSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    conversationHistory: {
+      type: [
+        {
+          role: { type: String, enum: ['user', 'assistant'], required: true },
+          content: { type: String, required: true },
+          timestamp: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

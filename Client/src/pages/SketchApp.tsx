@@ -14,12 +14,20 @@ import type { Editor } from 'tldraw';
 // Tab type
 type TabType = 'preview' | 'code' | 'chat';
 
+// Conversation history entry for refine tab
+export interface ConversationEntry {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 // App state interface
 interface AppState {
   isGenerating: boolean;
   generatedCode: string;
   activeTab: TabType;
   selectedModel: string;
+  conversationHistory: ConversationEntry[];
   error: string | null;
   currentSketchId: string | null;
   currentSketchTitle: string | null;
@@ -39,6 +47,7 @@ export function SketchApp() {
     generatedCode: '',
     activeTab: 'preview',
     selectedModel: 'gpt-4o',
+    conversationHistory: [],
     error: null,
     currentSketchId: null,
     currentSketchTitle: null,
@@ -47,24 +56,38 @@ export function SketchApp() {
     saveMessage: null,
   });
 
-  // Load sketch from URL param
+  // Load sketch from URL param (only when sketchId changes - avoid overwriting in-session refinements)
+  const prevSketchIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!sketchIdParam || !isAuthenticated) return;
 
-    // Clear tldrawSnapshot when switching sketches to avoid loading wrong canvas data
-    setState((prev) => ({ ...prev, tldrawSnapshot: null }));
+    const isNewSketch = prevSketchIdRef.current !== sketchIdParam;
+    prevSketchIdRef.current = sketchIdParam;
+
+    if (isNewSketch) {
+      setState((prev) => ({ ...prev, tldrawSnapshot: null }));
+    }
 
     let cancelled = false;
     getSketch(sketchIdParam)
       .then((res) => {
         if (cancelled || !res.data?.sketch) return;
+        const sketch = res.data!.sketch;
+        const loadedHistory = (sketch.conversationHistory ?? []).map(
+          (h: { role: string; content: string; timestamp: string }) => ({
+            role: h.role as 'user' | 'assistant',
+            content: h.content,
+            timestamp: new Date(h.timestamp),
+          })
+        );
         setState((prev) => ({
           ...prev,
-          generatedCode: res.data!.sketch.code,
-          currentSketchId: res.data!.sketch.id,
-          currentSketchTitle: res.data!.sketch.title,
-          tldrawSnapshot: res.data!.sketch.tldrawSnapshot ?? null,
+          generatedCode: sketch.code,
+          currentSketchId: sketch.id,
+          currentSketchTitle: sketch.title,
+          tldrawSnapshot: sketch.tldrawSnapshot ?? null,
           activeTab: 'preview',
+          conversationHistory: loadedHistory, // Always use server data when loading
         }));
       })
       .catch((err) => {
@@ -126,18 +149,29 @@ export function SketchApp() {
       }
 
       // Call the API - pass currentCode for iterative drawing (refine existing UI from updated sketch)
+      const modelToUse = state.selectedModel;
+      console.log('[App] Sending generate request:', {
+        model: modelToUse,
+        hasImage: !!imageBase64,
+        hasCurrentCode: !!state.generatedCode,
+      });
+
       const response = await generateUI({
         image: imageBase64,
         currentCode: state.generatedCode || undefined,
+        model: modelToUse,
       });
 
       if (response.success && response.code) {
+        const isIterativeDrawing = !!state.generatedCode;
         setState((prev) => ({
           ...prev,
           isGenerating: false,
           generatedCode: response.code ?? '',
           activeTab: 'preview',
           error: null,
+          // Only reset history on fresh generation; preserve when iterating from canvas
+          conversationHistory: isIterativeDrawing ? prev.conversationHistory : [],
         }));
         console.log('[App] Generated code successfully, tokens used:', response.usage?.totalTokens);
       } else {
@@ -151,7 +185,7 @@ export function SketchApp() {
         error: error instanceof Error ? error.message : 'An unexpected error occurred',
       }));
     }
-  }, [state.generatedCode]);
+  }, [state.generatedCode, state.selectedModel]);
 
   const handleIterate = useCallback(async (feedback: string) => {
     console.log('[App] handleIterate called with feedback:', feedback);
@@ -162,21 +196,49 @@ export function SketchApp() {
       return;
     }
 
-    setState((prev) => ({ ...prev, isGenerating: true, error: null }));
+    // Add user message to history immediately
+    const userEntry: ConversationEntry = {
+      role: 'user',
+      content: feedback.trim(),
+      timestamp: new Date(),
+    };
+    setState((prev) => ({
+      ...prev,
+      isGenerating: true,
+      error: null,
+      conversationHistory: [...prev.conversationHistory, userEntry],
+    }));
 
     try {
       console.log('[App] Calling iterateUI API...');
-      const response = await iterateUI(state.generatedCode, feedback);
+      const historyForApi = [...state.conversationHistory, userEntry].map((h) => ({
+        role: h.role,
+        content: h.content,
+      }));
+      const response = await iterateUI(
+        state.generatedCode,
+        feedback.trim(),
+        historyForApi,
+        state.selectedModel
+      );
       console.log('[App] API response:', { success: response.success, codeLength: response.code?.length });
 
       if (response.success && response.code) {
-        console.log('[App] Updating state with new code');
+        const replyText =
+          response.assistantReply?.trim() ||
+          "I've applied your changes. Check the Preview tab.";
+        const assistantEntry: ConversationEntry = {
+          role: 'assistant',
+          content: replyText,
+          timestamp: new Date(),
+        };
         setState((prev) => ({
           ...prev,
           isGenerating: false,
           generatedCode: response.code ?? '',
           activeTab: 'preview',
           error: null,
+          conversationHistory: [...prev.conversationHistory, assistantEntry],
         }));
       } else {
         throw new Error(response.error || 'Failed to iterate on code');
@@ -187,15 +249,18 @@ export function SketchApp() {
         ...prev,
         isGenerating: false,
         error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        // Remove the user message we added since the request failed
+        conversationHistory: prev.conversationHistory.slice(0, -1),
       }));
     }
-  }, [state.generatedCode]);
+  }, [state.generatedCode, state.conversationHistory, state.selectedModel]);
 
   const handleClear = useCallback(() => {
     setState((prev) => ({
       ...prev,
       generatedCode: '',
       activeTab: 'preview',
+      conversationHistory: [],
       error: null,
       currentSketchId: null,
       currentSketchTitle: null,
@@ -256,6 +321,7 @@ export function SketchApp() {
             title: saveTitle,
             tldrawSnapshot,
             thumbnail,
+            conversationHistory: state.conversationHistory,
           });
           setState((prev) => ({
             ...prev,
@@ -270,6 +336,7 @@ export function SketchApp() {
             code: state.generatedCode,
             tldrawSnapshot,
             thumbnail,
+            conversationHistory: state.conversationHistory,
           });
           const id = res.data?.sketch?.id;
           setState((prev) => ({
@@ -292,7 +359,7 @@ export function SketchApp() {
         }));
       }
     },
-    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, isAuthenticated]
+    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, state.conversationHistory, isAuthenticated]
   );
 
   const handleTabChange = useCallback((tab: TabType) => {
@@ -387,6 +454,7 @@ export function SketchApp() {
               activeTab={state.activeTab}
               generatedCode={state.generatedCode}
               isGenerating={state.isGenerating}
+              conversationHistory={state.conversationHistory}
               onIterate={handleIterate}
             />
           }
