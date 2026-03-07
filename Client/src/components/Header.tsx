@@ -1,17 +1,46 @@
-import { ChevronDown, Home, LogOut, User, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
+import {
+  ChevronDown,
+  Home,
+  LogOut,
+  User,
+  FolderOpen,
+  Eye,
+  Code2,
+  MessageSquare,
+  Loader2,
+  Save,
+  Download,
+  Maximize2,
+} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Logo } from './Logo';
 import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../hooks/useAuth';
 
-interface HeaderProps {
-  selectedModel: string;
-  onModelChange: (model: string) => void;
+type TabType = 'preview' | 'code' | 'chat';
+
+export interface SketchHeaderControls {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+  generatedCode: string;
+  isGenerating: boolean;
+  isIterating: boolean;
+  sketchTitle: string;
+  onSketchTitleChange: (title: string) => void;
+  onSave: () => void;
+  isAuthenticated: boolean;
+  isSaving: boolean;
+  onExport: () => void;
+  onFullscreen: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function Header(_props: HeaderProps) {
+interface HeaderProps {
+  selectedModel?: string;
+  onModelChange?: (model: string) => void;
+  sketchControls?: SketchHeaderControls;
+}
+
+export function Header({ sketchControls }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +50,6 @@ export function Header(_props: HeaderProps) {
     navigate('/');
   };
 
-  // Get initials for avatar
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -31,14 +59,200 @@ export function Header(_props: HeaderProps) {
       .slice(0, 2);
   };
 
+  // SketchApp header: no logo, controls in header
+  if (sketchControls) {
+    const {
+      activeTab,
+      onTabChange,
+      generatedCode,
+      isGenerating,
+      isIterating,
+      sketchTitle,
+      onSketchTitleChange,
+      onSave,
+      isAuthenticated,
+      isSaving,
+      onExport,
+      onFullscreen,
+    } = sketchControls;
+
+    return (
+      <header className="h-14 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 gap-4 relative z-50 min-w-0">
+        {/* Left: Home + Tabs + Naming */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Link
+            to="/home"
+            className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 hover:border-slate-300 transition-all group"
+            title="Back to Home"
+          >
+            <Home className="w-4 h-4 text-slate-500 group-hover:text-slate-700 transition-colors" />
+          </Link>
+
+          <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
+
+          {/* Tabs */}
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-shrink-0">
+            <TabButton
+              active={activeTab === 'preview'}
+              onClick={() => onTabChange('preview')}
+              icon={<Eye className="w-3.5 h-3.5" />}
+              label="Preview"
+            />
+            <TabButton
+              active={activeTab === 'code'}
+              onClick={() => onTabChange('code')}
+              icon={<Code2 className="w-3.5 h-3.5" />}
+              label="Code"
+            />
+            {generatedCode && (
+              <TabButton
+                active={activeTab === 'chat'}
+                onClick={() => onTabChange('chat')}
+                icon={<MessageSquare className="w-3.5 h-3.5" />}
+                label="Refine"
+              />
+            )}
+          </div>
+
+          {/* Naming input */}
+          {generatedCode && (
+            <input
+              type="text"
+              value={sketchTitle}
+              onChange={(e) => onSketchTitleChange(e.target.value)}
+              placeholder="Sketch name..."
+              className="w-28 sm:w-36 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all flex-shrink-0"
+            />
+          )}
+        </div>
+
+        {/* Center/Right: Status + Actions */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isGenerating && !isIterating && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-lg">
+              <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+              <span className="text-xs font-medium text-indigo-700">Generating...</span>
+            </div>
+          )}
+          {generatedCode && (
+            <>
+              <button
+                onClick={onSave}
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all"
+                title={isAuthenticated ? 'Save to My Sketches' : 'Log in to save'}
+              >
+                {isSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Save</span>
+              </button>
+              <button
+                onClick={onExport}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg transition-all"
+                title="Download code as .tsx file"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              {activeTab === 'preview' && (
+                <button
+                  onClick={onFullscreen}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg transition-all"
+                  title="Open in new tab"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Fullscreen</span>
+                </button>
+              )}
+            </>
+          )}
+
+          <div className="w-px h-6 bg-slate-200" />
+
+          {/* User Menu */}
+          {user && (
+            <div className="relative">
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-all"
+              >
+                <AvatarImage
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full object-cover object-center border-2 border-slate-200"
+                  fallback={
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold border-2 border-slate-200">
+                      {getInitials(user.name)}
+                    </div>
+                  }
+                  getInitials={getInitials}
+                />
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-500 transition-transform duration-200 hidden sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {isUserMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  />
+                  <div className="absolute top-full mt-2 right-0 w-56 bg-white backdrop-blur-xl border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 overflow-hidden z-20">
+                    <div className="p-4 border-b border-slate-200">
+                      <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    </div>
+                    <div className="p-1.5">
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          navigate('/sketches');
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-all"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        <span className="text-sm">My Sketches</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          navigate('/profile');
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-all"
+                      >
+                        <User className="w-4 h-4" />
+                        <span className="text-sm">Profile</span>
+                      </button>
+                      <div className="my-1 h-px bg-slate-200" />
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span className="text-sm">Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </header>
+    );
+  }
+
+  // Default header (for other pages - not used currently, but kept for consistency)
   return (
     <header className="h-14 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 relative z-50">
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-linear-to-r from-slate-50/50 via-transparent to-slate-50/50 pointer-events-none" />
-
-      {/* Left: Logo & Navigation */}
       <div className="flex items-center gap-4 relative">
-        {/* Home Button */}
         <Link
           to="/"
           className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 hover:border-slate-300 transition-all group"
@@ -46,78 +260,11 @@ export function Header(_props: HeaderProps) {
         >
           <Home className="w-4 h-4 text-slate-500 group-hover:text-slate-700 transition-colors" />
         </Link>
-
-        {/* Divider */}
         <div className="w-px h-6 bg-slate-200" />
-
-        {/* Logo */}
-        <Logo size="sm" />
       </div>
-
-      {/* Right: Actions */}
       <div className="flex items-center gap-2 relative">
-        {/* Model Selector */}
-        {/* <div className="relative">
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-700/50 hover:border-slate-600 hover:bg-slate-800 transition-all group"
-          >
-            <div className={`w-2 h-2 rounded-full ${currentModel.color} animate-pulse`} />
-            <span className="text-sm font-medium text-slate-200">
-              {currentModel.name}
-            </span>
-            <ChevronDown
-              className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-       
-          {isDropdownOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setIsDropdownOpen(false)}
-              />
-              <div className="absolute top-full mt-2 right-0 w-60 bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-20">
-                <div className="p-1.5">
-                  <div className="px-3 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    AI Model
-                  </div>
-                  {models.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => {
-                        onModelChange(model.id);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${selectedModel === model.id
-                        ? 'bg-slate-800/50 text-white'
-                        : 'hover:bg-slate-700/50 text-slate-300'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${model.color} ${selectedModel === model.id ? '' : 'opacity-50'}`} />
-                        <span className="text-sm font-medium">{model.name}</span>
-                      </div>
-                      <span className="text-xs text-slate-500">
-                        {model.provider}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div className="border-t border-slate-700/50 px-4 py-3 bg-slate-900/50">
-                  <p className="text-xs text-slate-500">
-                    Selected model will be used for UI generation
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-        </div> */}
-
-        {/* User Menu */}
         {user && (
-          <div className="relative ml-2">
+          <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
               className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-all"
@@ -137,8 +284,6 @@ export function Header(_props: HeaderProps) {
                 className={`w-4 h-4 text-slate-500 transition-transform duration-200 hidden sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
               />
             </button>
-
-            {/* User Dropdown */}
             {isUserMenuOpen && (
               <>
                 <div
@@ -146,13 +291,10 @@ export function Header(_props: HeaderProps) {
                   onClick={() => setIsUserMenuOpen(false)}
                 />
                 <div className="absolute top-full mt-2 right-0 w-56 bg-white backdrop-blur-xl border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 overflow-hidden z-20">
-                  {/* User Info */}
                   <div className="p-4 border-b border-slate-200">
                     <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
                     <p className="text-xs text-slate-500 truncate">{user.email}</p>
                   </div>
-
-                  {/* Menu Items */}
                   <div className="p-1.5">
                     <button
                       onClick={() => {
@@ -164,7 +306,6 @@ export function Header(_props: HeaderProps) {
                       <FolderOpen className="w-4 h-4" />
                       <span className="text-sm">My Sketches</span>
                     </button>
-
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);
@@ -175,9 +316,7 @@ export function Header(_props: HeaderProps) {
                       <User className="w-4 h-4" />
                       <span className="text-sm">Profile</span>
                     </button>
-
                     <div className="my-1 h-px bg-slate-200" />
-
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);
@@ -196,6 +335,32 @@ export function Header(_props: HeaderProps) {
         )}
       </div>
     </header>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+        active
+          ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 

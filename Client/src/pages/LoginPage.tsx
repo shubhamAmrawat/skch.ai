@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Wand2, Code2, Palette, Zap, Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { AuthBackground } from '../components/AuthBackground';
@@ -8,7 +8,17 @@ import { useAuth } from '../hooks/useAuth';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { login, loginWithGoogle } = useAuth();
+
+  const getRedirectPath = () => {
+    const fromState = (location.state as { from?: { pathname: string; search?: string } })?.from;
+    if (fromState) return fromState.pathname + (fromState.search || '');
+    const redirect = searchParams.get('redirect');
+    if (redirect?.startsWith('/')) return redirect;
+    return '/home';
+  };
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

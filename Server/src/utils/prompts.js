@@ -600,6 +600,9 @@ If you use Unsplash, you MUST use one of the exact URLs listed above.
 Do NOT invent new Unsplash URLs.
 If you need variety, reuse the same URL; do NOT guess a new photo ID.
 
+**CRITICAL - NEVER use via.placeholder.com** - it causes net::ERR_NAME_NOT_RESOLVED and broken images.
+Use picsum.photos, images.unsplash.com, i.pravatar.cc, or illustrations.popsy.co ONLY.
+
 -------------------------------------------------------------------------------
 ## IMAGE HANDLING RULES (CRITICAL)
 
@@ -617,7 +620,7 @@ If you need variety, reuse the same URL; do NOT guess a new photo ID.
        - Use \`https://i.pravatar.cc/100?img=32\` (or any number 1–70).
    - For logo rows at the bottom:
        - Either use small text-only placeholders ("Logo") OR
-       - Use small logo placeholders like \`https://via.placeholder.com/80x24?text=Logo\`.
+       - Use \`https://picsum.photos/80/24\` for small image placeholders.
 
 3. HERO ILLUSTRATION RULE:
    - If the design shows a large hero image/3D illustration on one side of the hero section:
@@ -822,7 +825,10 @@ Use existing component patterns when applicable:
 
 All new components should:
 - Use lucide-react icons
-- Use real image URLs if images are needed
+- Use ONLY these image URLs (NEVER via.placeholder.com - it fails with ERR_NAME_NOT_RESOLVED):
+  Hero/large: \`https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1200&q=80\` or \`https://picsum.photos/800/600\`
+  Grid/cards: \`https://picsum.photos/600/400\` or \`https://picsum.photos/400/300\`
+  Avatars: \`https://i.pravatar.cc/100?img=32\` (use img=1 to 70 for variety)
 - Follow hover/transition effects:
   - hover:shadow-xl
   - hover:scale-[1.02]
@@ -1102,5 +1108,48 @@ USER REQUEST: ${feedback}
 
 Apply this change and return the COMPLETE updated component code. Make sure any new elements are clearly visible (use appropriate colors, sizes, and no hidden classes). Return ONLY the raw code - no markdown formatting or explanations.`
     }
+  ];
+}
+
+/**
+ * Constructs the user message for iterative drawing - user refined their sketch and wants updated code
+ * @param {string} imageBase64 - Base64 encoded image of the updated sketch
+ * @param {string} currentCode - The current generated code
+ * @returns {Array} Message array for OpenAI API
+ */
+export function buildRegenerateFromDrawingMessage(imageBase64, currentCode) {
+  return [
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `The user has REFINED their sketch/drawing. Below is the current React implementation. The attached image shows their UPDATED sketch.
+
+Apply the changes shown in the new sketch:
+- Add/remove elements to match the new drawing
+- Adjust layout, spacing, colors as indicated
+- Preserve code quality and patterns that still apply
+- Keep the same design language unless the sketch clearly shows a different direction
+
+Current implementation:
+
+\`\`\`jsx
+${currentCode}
+\`\`\`
+
+Return the COMPLETE updated component code. Return ONLY raw JSX code - no markdown, no explanations.`,
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: imageBase64.startsWith("data:")
+              ? imageBase64
+              : `data:image/png;base64,${imageBase64}`,
+            detail: "high",
+          },
+        },
+      ],
+    },
   ];
 }

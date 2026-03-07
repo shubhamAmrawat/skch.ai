@@ -3,7 +3,8 @@ import {
   SYSTEM_PROMPT,
   ITERATION_PROMPT,
   buildInitialMessage,
-  buildIterationMessage
+  buildIterationMessage,
+  buildRegenerateFromDrawingMessage
 } from '../utils/prompts.js';
 
 // Initialize OpenAI client lazily to avoid startup errors
@@ -40,14 +41,15 @@ export async function generateUI(req, res) {
       });
     }
 
-    // Determine if this is an iteration or initial generation
-    const isIteration = Boolean(feedback && currentCode);
+    // Determine request type: text iteration, iterative drawing (image+code), or initial generation
+    const isTextIteration = Boolean(feedback && currentCode);
+    const isIterativeDrawing = Boolean(image && currentCode && !feedback);
 
     // Build messages array
     let messages = [
       {
         role: "system",
-        content: isIteration ? ITERATION_PROMPT : SYSTEM_PROMPT
+        content: (isTextIteration || isIterativeDrawing) ? ITERATION_PROMPT : SYSTEM_PROMPT
       }
     ];
 
@@ -57,13 +59,16 @@ export async function generateUI(req, res) {
     }
 
     // Add the appropriate user message
-    if (isIteration) {
+    if (isTextIteration) {
       messages = messages.concat(buildIterationMessage(currentCode, feedback));
+    } else if (isIterativeDrawing) {
+      messages = messages.concat(buildRegenerateFromDrawingMessage(image, currentCode));
     } else {
       messages = messages.concat(buildInitialMessage(image));
     }
 
-    console.log(`[AI] Processing ${isIteration ? 'iteration' : 'generation'} request...`);
+    const logType = isTextIteration ? 'iteration' : isIterativeDrawing ? 'iterative-drawing' : 'generation';
+    console.log(`[AI] Processing ${logType} request...`);
 
     // Get OpenAI client (throws if not configured)
     const client = getOpenAIClient();
@@ -85,7 +90,10 @@ export async function generateUI(req, res) {
     }
 
     // Clean up the response (remove any accidental markdown code blocks)
-    const cleanedCode = cleanCodeResponse(generatedCode);
+    let cleanedCode = cleanCodeResponse(generatedCode);
+
+    // Replace via.placeholder.com URLs (unreliable, causes ERR_NAME_NOT_RESOLVED) with picsum.photos
+    cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
 
     console.log(`[AI] Successfully generated ${cleanedCode.length} characters of code`);
 
@@ -163,6 +171,22 @@ export async function healthCheck(req, res) {
       keyPrefix: hasApiKey ? process.env.OPENAI_API_KEY.substring(0, 7) + '...' : null
     }
   });
+}
+
+/**
+ * Replace via.placeholder.com URLs with picsum.photos (via.placeholder causes ERR_NAME_NOT_RESOLVED)
+ * @param {string} code - The code that may contain via.placeholder.com URLs
+ * @returns {string} Code with placeholder URLs replaced
+ */
+function replaceBrokenPlaceholderUrls(code) {
+  return code.replace(
+    /https:\/\/via\.placeholder\.com\/(\d+)(?:x(\d+))?(?:\?[^"'\s]*)?/gi,
+    (_, w, h) => {
+      const width = parseInt(w, 10) || 400;
+      const height = h ? parseInt(h, 10) : width;
+      return `https://picsum.photos/${width}/${height}`;
+    }
+  );
 }
 
 /**

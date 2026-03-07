@@ -7,6 +7,7 @@ import connectDB from './config/database.js';
 import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import sketchRoutes from './routes/sketchRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -72,6 +73,7 @@ app.use((req, res, next) => {
 app.use('/api', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/sketches', sketchRoutes);
 
 // ===================
 // Root Endpoint
@@ -94,6 +96,13 @@ app.get('/', (req, res) => {
       upload: {
         avatar: 'POST /api/upload/avatar',
         removeAvatar: 'DELETE /api/upload/avatar',
+      },
+      sketches: {
+        create: 'POST /api/sketches',
+        list: 'GET /api/sketches',
+        get: 'GET /api/sketches/:id',
+        update: 'PUT /api/sketches/:id',
+        delete: 'DELETE /api/sketches/:id',
       }
     }
   });

@@ -17,98 +17,114 @@ export function ResizableSplitPane({
   maxLeftWidth = 75,
 }: ResizableSplitPaneProps) {
   const [leftWidth, setLeftWidth] = useState(defaultLeftWidth);
-  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseDown = useCallback(() => {
-    setIsDragging(true);
-  }, []);
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!isDragging || !containerRef.current) return;
-
-      const container = containerRef.current;
-      const containerRect = container.getBoundingClientRect();
-      const newLeftWidth =
-        ((e.clientX - containerRect.left) / containerRect.width) * 100;
-
-      if (newLeftWidth >= minLeftWidth && newLeftWidth <= maxLeftWidth) {
-        setLeftWidth(newLeftWidth);
-      }
-    },
-    [isDragging, minLeftWidth, maxLeftWidth]
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+  const captureTargetRef = useRef<HTMLElement | null>(null);
+  const capturePointerIdRef = useRef<number | null>(null);
+  const clamp = useCallback(
+    (value: number) => Math.max(minLeftWidth, Math.min(maxLeftWidth, value)),
+    [minLeftWidth, maxLeftWidth]
   );
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const target = e.currentTarget as HTMLElement;
+      isDraggingRef.current = true;
+      startXRef.current = e.clientX;
+      startWidthRef.current = leftWidth;
+      captureTargetRef.current = target;
+      capturePointerIdRef.current = e.pointerId;
+      target.setPointerCapture(e.pointerId);
+    },
+    [leftWidth]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: PointerEvent) => {
+      if (!isDraggingRef.current || !containerRef.current || !leftPanelRef.current) return;
+      const container = containerRef.current.getBoundingClientRect();
+      const deltaX = e.clientX - startXRef.current;
+      const deltaPercent = (deltaX / container.width) * 100;
+      const newWidth = clamp(startWidthRef.current + deltaPercent);
+      // Direct DOM update - no React re-renders during drag = smooth, no lag
+      leftPanelRef.current.style.width = `${newWidth}%`;
+    },
+    [clamp]
+  );
+
+  const handlePointerUp = useCallback(() => {
+    // Sync final width to React state (single re-render when drag ends)
+    if (leftPanelRef.current) {
+      const w = leftPanelRef.current.style.width;
+      const num = parseFloat(w);
+      if (!Number.isNaN(num)) setLeftWidth(clamp(num));
+    }
+    if (captureTargetRef.current && capturePointerIdRef.current !== null) {
+      try {
+        captureTargetRef.current.releasePointerCapture(capturePointerIdRef.current);
+      } catch {
+        /* ignore */
+      }
+      captureTargetRef.current = null;
+      capturePointerIdRef.current = null;
+    }
+    isDraggingRef.current = false;
+  }, [clamp]);
 
   useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    }
+    const onPointerMove = (e: PointerEvent) => handlePointerMove(e);
+    const onPointerUp = () => handlePointerUp();
+
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      document.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [handlePointerMove, handlePointerUp]);
 
   return (
-    <div ref={containerRef} className="flex h-full w-full overflow-hidden bg-slate-50">
-      {/* Left Panel */}
+    <div
+      ref={containerRef}
+      className="flex h-full w-full min-h-0 bg-slate-50"
+      style={{ overflow: 'hidden' }}
+    >
+      {/* Left Panel - drawing area */}
       <div
-        className="h-full overflow-hidden"
-        style={{ width: `${leftWidth}%` }}
+        ref={leftPanelRef}
+        className="h-full min-w-0 shrink-0 overflow-hidden"
+        style={{ width: `${leftWidth}%`, flexShrink: 0 }}
       >
         {left}
       </div>
 
-      {/* Resizer */}
+      {/* Resize Handle - 12px hit area, stops propagation to prevent tldraw capture */}
       <div
-        onMouseDown={handleMouseDown}
-        className={`relative w-[3px] shrink-0 cursor-col-resize group transition-all duration-150 ${isDragging
-          ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.4)]'
-          : 'bg-slate-200 hover:bg-indigo-400'
-          }`}
+        role="separator"
+        aria-orientation="vertical"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="relative flex shrink-0 items-center justify-center w-3 cursor-col-resize touch-none select-none hover:bg-indigo-100/50 active:bg-indigo-200/50 transition-colors"
+        style={{ flexShrink: 0 }}
       >
-        {/* Gradient glow on hover/drag */}
-        <div
-          className={`absolute inset-0 transition-opacity duration-150 ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-            }`}
-        >
-          <div className="absolute inset-y-0 -left-2 w-2 bg-linear-to-r from-transparent to-indigo-500/20" />
-          <div className="absolute inset-y-0 -right-2 w-2 bg-linear-to-l from-transparent to-indigo-500/20" />
+        <div className="flex items-center justify-center w-1 h-12 rounded-full bg-slate-200 hover:bg-indigo-400 transition-colors pointer-events-none">
+          <GripVertical className="w-3 h-3 text-slate-500" />
         </div>
-
-        {/* Drag Handle Visual */}
-        <div
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-0.5 py-3 rounded-full transition-all duration-150 ${isDragging
-            ? 'bg-indigo-500 scale-110 shadow-lg shadow-indigo-500/30'
-            : 'bg-slate-300 group-hover:bg-indigo-500 group-hover:scale-105'
-            }`}
-        >
-          <GripVertical
-            className={`w-3 h-3 transition-colors duration-150 ${isDragging ? 'text-white' : 'text-slate-500 group-hover:text-white'
-              }`}
-          />
-        </div>
-
-        {/* Extended hit area */}
-        <div className="absolute inset-y-0 -left-2 -right-2" />
+        {/* Extended hit area for easier grabbing */}
+        <div className="absolute inset-y-0 -left-2 -right-2" aria-hidden />
       </div>
 
-      {/* Right Panel */}
-      <div
-        className="h-full overflow-hidden"
-        style={{ width: `${100 - leftWidth}%` }}
-      >
+      {/* Right Panel - preview area */}
+      <div className="h-full flex-1 min-w-0 overflow-hidden">
         {right}
       </div>
     </div>

@@ -30,7 +30,8 @@ interface GenerateRequest {
 }
 
 /**
- * Generate UI code from a wireframe image
+ * Generate UI code from a wireframe image.
+ * For iterative drawing: pass both image and currentCode to refine existing UI based on updated sketch.
  */
 export async function generateUI(request: GenerateRequest): Promise<GenerateResponse> {
   try {

@@ -1,34 +1,91 @@
 import { Sparkles, Trash2, Pencil, Image, MousePointer2 } from 'lucide-react';
-import { Tldraw, Editor } from 'tldraw';
+import { Tldraw, Editor, loadSnapshot } from 'tldraw';
 import 'tldraw/tldraw.css';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 
 interface WhiteboardContainerProps {
   isGenerating: boolean;
   onGenerate: (editor: Editor | null) => void;
   onClear: () => void;
+  onEditorMount?: (editor: Editor | null) => void;
+  initialSnapshot?: string | null;
+  /** When loading a saved sketch, pass sketchId so switching sketches remounts with correct snapshot */
+  sketchId?: string | null;
+  /** When true, show "Regenerate" for iterative drawing support */
+  hasExistingCode?: boolean;
 }
 
 export function WhiteboardContainer({
   isGenerating,
   onGenerate,
   onClear,
+  onEditorMount,
+  initialSnapshot,
+  sketchId,
+  hasExistingCode,
 }: WhiteboardContainerProps) {
-  const [editor, setEditor] = useState<Editor | null>(null);
   const [hasContent, setHasContent] = useState(false);
+  const editorRef = useRef<Editor | null>(null);
+  const snapshotLoadedRef = useRef(false);
+  const initialSnapshotRef = useRef(initialSnapshot);
 
-  const handleMount = useCallback((editorInstance: Editor) => {
-    setEditor(editorInstance);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
 
-    const unsubscribe = editorInstance.store.listen(() => {
-      const shapeIds = editorInstance.getCurrentPageShapeIds();
-      setHasContent(shapeIds.size > 0);
-    });
+  // Reset snapshot load state when switching sketches
+  useEffect(() => {
+    snapshotLoadedRef.current = false;
+  }, [sketchId]);
 
-    return () => unsubscribe();
+  const tryLoadSnapshot = useCallback((editor: Editor, snapshotStr: string | null | undefined) => {
+    if (!snapshotStr?.trim() || snapshotLoadedRef.current) return;
+    try {
+      const parsed = JSON.parse(snapshotStr);
+      if (parsed && typeof parsed === 'object' && (parsed.document || parsed.session)) {
+        loadSnapshot(editor.store, parsed);
+        snapshotLoadedRef.current = true;
+        const shapeIds = editor.getCurrentPageShapeIds();
+        setHasContent(shapeIds.size > 0);
+      }
+    } catch (e) {
+      console.warn('[Whiteboard] Failed to load snapshot:', e);
+    }
   }, []);
 
+  const handleMount = useCallback(
+    (editorInstance: Editor) => {
+      editorRef.current = editorInstance;
+      snapshotLoadedRef.current = false;
+      onEditorMount?.(editorInstance);
+
+      // Load snapshot if it arrived before editor (e.g. opening saved sketch)
+      tryLoadSnapshot(editorInstance, initialSnapshotRef.current);
+
+      const unsubscribe = editorInstance.store.listen(() => {
+        const shapeIds = editorInstance.getCurrentPageShapeIds();
+        setHasContent(shapeIds.size > 0);
+      });
+
+      return () => {
+        unsubscribe();
+        editorRef.current = null;
+        onEditorMount?.(null);
+      };
+    },
+    [onEditorMount, tryLoadSnapshot]
+  );
+
+  // Load snapshot when it arrives after editor has mounted (e.g. fetch completes)
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor && initialSnapshot) {
+      tryLoadSnapshot(editor, initialSnapshot);
+    }
+  }, [initialSnapshot, tryLoadSnapshot]);
+
   const handleClear = useCallback(() => {
+    const editor = editorRef.current;
     if (editor) {
       const allShapeIds = editor.getCurrentPageShapeIds();
       if (allShapeIds.size > 0) {
@@ -36,20 +93,21 @@ export function WhiteboardContainer({
       }
     }
     onClear();
-  }, [editor, onClear]);
+  }, [onClear]);
 
   const handleGenerate = useCallback(() => {
-    onGenerate(editor);
-  }, [editor, onGenerate]);
+    onGenerate(editorRef.current);
+  }, [onGenerate]);
 
   return (
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
       {/* Subtle gradient overlay */}
       {/* <div className="absolute inset-0 bg-linear-to-br from-indigo-500/2 via-transparent to-purple-500/2 pointer-events-none z-10" /> */}
 
-      {/* Tldraw Canvas */}
+      {/* Tldraw Canvas - snapshot loaded via loadSnapshot in useEffect when opening saved sketch */}
       <div className="flex-1 relative overflow-hidden tldraw-container">
         <Tldraw
+          key={sketchId ?? 'new'}
           onMount={handleMount}
           inferDarkMode={false}
           licenseKey={import.meta.env.VITE_TLDRAW_LICENSE}
@@ -131,7 +189,9 @@ export function WhiteboardContainer({
               className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`}
             />
             <span>
-              {isGenerating ? 'Generating...' : 'Generate'}
+              {isGenerating
+                ? (hasExistingCode ? 'Regenerating...' : 'Generating...')
+                : (hasExistingCode ? 'Regenerate' : 'Generate')}
             </span>
           </button>
         </div>
