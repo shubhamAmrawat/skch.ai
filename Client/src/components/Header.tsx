@@ -12,6 +12,7 @@ import {
   Save,
   Download,
   Maximize2,
+  Pencil,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AvatarImage } from './AvatarImage';
@@ -43,6 +44,8 @@ export interface SketchHeaderControls {
   isSaving: boolean;
   onExport: () => void;
   onFullscreen: () => void;
+  refineOnlyMode: boolean;
+  onRefineOnlyModeChange: (enabled: boolean) => void;
 }
 
 interface HeaderProps {
@@ -86,6 +89,8 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
       isSaving,
       onExport,
       onFullscreen,
+      refineOnlyMode,
+      onRefineOnlyModeChange,
     } = sketchControls;
 
     return (
@@ -102,7 +107,7 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
 
           <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
 
-          {/* Tabs */}
+          {/* Tabs - Refine tab hidden in refine-only mode (right pane is always chat) */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-shrink-0">
             <TabButton
               active={activeTab === 'preview'}
@@ -116,7 +121,7 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
               icon={<Code2 className="w-3.5 h-3.5" />}
               label="Code"
             />
-            {generatedCode && (
+            {generatedCode && !refineOnlyMode && (
               <TabButton
                 active={activeTab === 'chat'}
                 onClick={() => onTabChange('chat')}
@@ -168,16 +173,43 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
             </div>
           )}
 
-          {/* Naming input */}
-          {generatedCode && (
-            <input
-              type="text"
-              value={sketchTitle}
-              onChange={(e) => onSketchTitleChange(e.target.value)}
-              placeholder="Sketch name..."
-              className="w-28 sm:w-36 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all flex-shrink-0"
-            />
-          )}
+          {/* Refine-only mode switch + Naming input */}
+          <div className="w-full flex flex-row justify-end items-center gap-3">
+            {generatedCode && (
+              <label className="flex items-center gap-2 cursor-pointer shrink-0" title="Refine only: hide canvas, focus on chat + preview">
+                <span className="text-xs font-medium text-slate-600 whitespace-nowrap">Refine only</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={refineOnlyMode ? 'true' : 'false'}
+                  onClick={() => onRefineOnlyModeChange(!refineOnlyMode)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${
+                    refineOnlyMode ? 'bg-indigo-500' : 'bg-slate-200'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                      refineOnlyMode ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </label>
+            )}
+            <div className="flex flex-row items-center gap-2 border rounded-lg border-indigo-500 pr-1">
+              {generatedCode && (
+                <input
+                  type="text"
+                  value={sketchTitle}
+                  onChange={(e) => onSketchTitleChange(e.target.value)}
+                  placeholder="Sketch name..."
+                  className="w-28 sm:w-36 px-2.5 py-1.5 text-[15px] bg-white rounded-lg text-indigo-500 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all flex-shrink-0"
+                />
+              )}
+              <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                <Pencil className="w-4 h-4 text-white" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Center/Right: Status + Actions */}

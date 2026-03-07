@@ -180,7 +180,7 @@ export async function getSketch(req, res) {
 export async function updateSketch(req, res) {
   try {
     const { id } = req.params;
-    const { title, code, tldrawSnapshot, thumbnail } = req.body;
+    const { title, code, tldrawSnapshot, thumbnail, conversationHistory } = req.body;
     const userId = req.userId;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -196,6 +196,7 @@ export async function updateSketch(req, res) {
     if (code !== undefined) update.code = code;
     if (tldrawSnapshot !== undefined) update.tldrawSnapshot = tldrawSnapshot;
     if (thumbnail !== undefined) update.thumbnail = thumbnail;
+    if (conversationHistory !== undefined) update.conversationHistory = normalizeConversationHistory(conversationHistory);
 
     if (Object.keys(update).length === 0) {
       return res.status(400).json({

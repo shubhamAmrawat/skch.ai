@@ -1,6 +1,7 @@
 import { Eye, Code2, Send, Loader2, MessageSquare, User, Bot, Sparkles, Copy, Check } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { LivePreview } from './LivePreview';
+import { ResizableSplitPane } from './ResizableSplitPane';
 import type { ConversationEntry } from '../pages/SketchApp';
 
 type TabType = 'preview' | 'code' | 'chat';
@@ -11,6 +12,7 @@ interface CodePreviewPanelProps {
   isGenerating: boolean;
   conversationHistory: ConversationEntry[];
   onIterate?: (feedback: string) => void;
+  refineOnlyMode?: boolean;
 }
 
 export function CodePreviewPanel({
@@ -19,6 +21,7 @@ export function CodePreviewPanel({
   isGenerating,
   conversationHistory,
   onIterate,
+  refineOnlyMode = false,
 }: CodePreviewPanelProps) {
   const [inputMessage, setInputMessage] = useState('');
 
@@ -38,12 +41,49 @@ export function CodePreviewPanel({
   // Show "Applying changes..." when last message is user and we're generating
   const isIterating = isGenerating && conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1]?.role === 'user';
 
+  // Refine-only mode: split layout - left = Preview/Code, right = Chat (canvas hidden by SketchApp)
+  if (refineOnlyMode) {
+    const leftTab = activeTab === 'code' ? 'code' : 'preview';
+    return (
+      <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
+        <ResizableSplitPane
+          left={
+            <div className="h-full overflow-hidden bg-white rounded-tl-xl border border-slate-200">
+              {isGenerating && !isIterating ? (
+                <GeneratingState />
+              ) : leftTab === 'preview' ? (
+                <PreviewView code={generatedCode} />
+              ) : (
+                <CodeView code={generatedCode} />
+              )}
+            </div>
+          }
+          right={
+            <div className="h-full flex flex-col bg-slate-50">
+              <ChatView
+                messages={conversationHistory}
+                inputMessage={inputMessage}
+                setInputMessage={setInputMessage}
+                onSend={handleSendMessageInternal}
+                onKeyDown={handleKeyDown}
+                isGenerating={isGenerating}
+                isIterating={isIterating}
+              />
+            </div>
+          }
+          defaultLeftWidth={55}
+          minLeftWidth={35}
+          maxLeftWidth={75}
+        />
+      </div>
+    );
+  }
+
+  // Normal mode: single panel with tabs
   return (
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
-      {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
-
-      {/* Content Area - tabs/controls moved to Header on SketchApp */}
       <div className="flex-1 overflow-hidden relative z-10">
         {isGenerating && !isIterating ? (
           <GeneratingState />

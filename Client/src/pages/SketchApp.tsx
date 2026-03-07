@@ -28,6 +28,7 @@ interface AppState {
   activeTab: TabType;
   selectedModel: string;
   conversationHistory: ConversationEntry[];
+  refineOnlyMode: boolean;
   error: string | null;
   currentSketchId: string | null;
   currentSketchTitle: string | null;
@@ -41,6 +42,7 @@ export function SketchApp() {
   const sketchIdParam = searchParams.get('sketchId');
   const { isAuthenticated } = useAuth();
   const editorRef = useRef<Editor | null>(null);
+  const conversationHistoryRef = useRef<ConversationEntry[]>([]);
 
   const [state, setState] = useState<AppState>({
     isGenerating: false,
@@ -48,6 +50,7 @@ export function SketchApp() {
     activeTab: 'preview',
     selectedModel: 'gpt-4o',
     conversationHistory: [],
+    refineOnlyMode: false,
     error: null,
     currentSketchId: null,
     currentSketchTitle: null,
@@ -103,6 +106,9 @@ export function SketchApp() {
       cancelled = true;
     };
   }, [sketchIdParam, isAuthenticated]);
+
+  // Keep ref in sync so handleSave always has latest conversationHistory (avoids stale closure on quick Save after refine)
+  conversationHistoryRef.current = state.conversationHistory;
 
   const handleGenerate = useCallback(async (editor: Editor | null) => {
     // Set generating state and clear any previous errors
@@ -315,14 +321,24 @@ export function SketchApp() {
 
         const saveTitle = title ?? state.currentSketchTitle ?? 'Untitled Sketch';
 
+        // Build update payload - only include thumbnail/tldrawSnapshot when we captured them
+        // (in refine-only mode canvas is hidden, so we skip to avoid overwriting existing values with null)
+        const updatePayload: {
+          code: string;
+          title: string;
+          tldrawSnapshot?: string | null;
+          thumbnail?: string | null;
+          conversationHistory: ConversationEntry[];
+        } = {
+          code: state.generatedCode,
+          title: saveTitle,
+          conversationHistory: conversationHistoryRef.current,
+        };
+        if (tldrawSnapshot !== null) updatePayload.tldrawSnapshot = tldrawSnapshot;
+        if (thumbnail !== null) updatePayload.thumbnail = thumbnail;
+
         if (state.currentSketchId) {
-          await updateSketch(state.currentSketchId, {
-            code: state.generatedCode,
-            title: saveTitle,
-            tldrawSnapshot,
-            thumbnail,
-            conversationHistory: state.conversationHistory,
-          });
+          await updateSketch(state.currentSketchId, updatePayload);
           setState((prev) => ({
             ...prev,
             isSaving: false,
@@ -336,7 +352,7 @@ export function SketchApp() {
             code: state.generatedCode,
             tldrawSnapshot,
             thumbnail,
-            conversationHistory: state.conversationHistory,
+            conversationHistory: conversationHistoryRef.current,
           });
           const id = res.data?.sketch?.id;
           setState((prev) => ({
@@ -359,7 +375,7 @@ export function SketchApp() {
         }));
       }
     },
-    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, state.conversationHistory, isAuthenticated]
+    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, isAuthenticated]
   );
 
   const handleTabChange = useCallback((tab: TabType) => {
@@ -412,6 +428,14 @@ export function SketchApp() {
           isSaving: state.isSaving,
           onExport: handleExport,
           onFullscreen: handleFullscreen,
+          refineOnlyMode: state.refineOnlyMode,
+          onRefineOnlyModeChange: (enabled) => {
+            setState((prev) => ({
+              ...prev,
+              refineOnlyMode: enabled,
+              activeTab: enabled && prev.activeTab === 'chat' ? 'preview' : prev.activeTab,
+            }));
+          },
         }}
       />
 
@@ -433,35 +457,46 @@ export function SketchApp() {
         </div>
       )}
 
-      {/* Main Content - Resizable Split Pane */}
+      {/* Main Content - Refine-only mode hides canvas, normal mode shows canvas | preview */}
       <main className="flex-1 overflow-hidden">
-        <ResizableSplitPane
-          left={
-            <WhiteboardContainer
-              isGenerating={state.isGenerating}
-              onGenerate={handleGenerate}
-              onClear={handleClear}
-              onEditorMount={(ed) => {
-                editorRef.current = ed;
-              }}
-              initialSnapshot={state.tldrawSnapshot}
-              sketchId={sketchIdParam}
-              hasExistingCode={!!state.generatedCode}
-            />
-          }
-          right={
-            <CodePreviewPanel
-              activeTab={state.activeTab}
-              generatedCode={state.generatedCode}
-              isGenerating={state.isGenerating}
-              conversationHistory={state.conversationHistory}
-              onIterate={handleIterate}
-            />
-          }
-          defaultLeftWidth={50}
-          minLeftWidth={30}
-          maxLeftWidth={70}
-        />
+        {state.refineOnlyMode ? (
+          <CodePreviewPanel
+            activeTab={state.activeTab}
+            generatedCode={state.generatedCode}
+            isGenerating={state.isGenerating}
+            conversationHistory={state.conversationHistory}
+            onIterate={handleIterate}
+            refineOnlyMode
+          />
+        ) : (
+          <ResizableSplitPane
+            left={
+              <WhiteboardContainer
+                isGenerating={state.isGenerating}
+                onGenerate={handleGenerate}
+                onClear={handleClear}
+                onEditorMount={(ed) => {
+                  editorRef.current = ed;
+                }}
+                initialSnapshot={state.tldrawSnapshot}
+                sketchId={sketchIdParam}
+                hasExistingCode={!!state.generatedCode}
+              />
+            }
+            right={
+              <CodePreviewPanel
+                activeTab={state.activeTab}
+                generatedCode={state.generatedCode}
+                isGenerating={state.isGenerating}
+                conversationHistory={state.conversationHistory}
+                onIterate={handleIterate}
+              />
+            }
+            defaultLeftWidth={50}
+            minLeftWidth={30}
+            maxLeftWidth={70}
+          />
+        )}
       </main>
     </div>
   );
