@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   User, Mail, Calendar, Shield, Camera, Edit3, Save, X,
-  Sparkles, LogOut, ArrowLeft, CheckCircle2, AlertCircle,
+  LogOut, ArrowLeft, CheckCircle2, AlertCircle,
   Key, Loader2, Eye, EyeOff, Lock, Trash2, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
