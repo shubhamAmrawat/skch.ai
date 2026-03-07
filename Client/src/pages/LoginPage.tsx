@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Wand2, Code2, Palette, Zap, Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { AuthBackground } from '../components/AuthBackground';
@@ -34,10 +34,7 @@ export function LoginPage() {
       });
 
       if (response.success) {
-        // Redirect to the page they tried to visit, or /app
-        // const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app';
-        // navigate(from, { replace: true });
-        navigate('/', { replace: true });
+        navigate(getRedirectPath(), { replace: true });
       } else {
         // Handle errors
         if (response.details) {
@@ -70,7 +67,7 @@ export function LoginPage() {
         const response = await loginWithGoogle(tokenResponse.access_token);
 
         if (response.success) {
-          navigate('/', { replace: true });
+          navigate(getRedirectPath(), { replace: true });
         } else {
           setError(response.message || response.error || 'Google login failed');
         }
@@ -93,7 +90,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex relative overflow-hidden">
       {/* Animated Background */}
       <AuthBackground />
 
@@ -106,10 +103,10 @@ export function LoginPage() {
           </Link>
 
           {/* Form Container with Glass Effect */}
-          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl shadow-black/20">
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-3xl p-8 shadow-xl shadow-slate-200/50">
             {/* Header */}
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
-            <p className="text-slate-400 mb-8">
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back</h1>
+            <p className="text-slate-600 mb-8">
               Sign in to continue creating amazing UIs
             </p>
 
@@ -126,7 +123,7 @@ export function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isLoading || isGoogleLoading}
-              className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-slate-800/50 border border-slate-700 rounded-xl text-white font-medium hover:bg-slate-800/70 hover:border-slate-600 transition-all mb-6 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium hover:bg-slate-50 hover:border-slate-300 transition-all mb-6 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGoogleLoading ? (
                 <>
@@ -148,16 +145,16 @@ export function LoginPage() {
 
             {/* Divider */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="flex-1 h-px bg-slate-800" />
+              <div className="flex-1 h-px bg-slate-200" />
               <span className="text-sm text-slate-500">or continue with email</span>
-              <div className="flex-1 h-px bg-slate-800" />
+              <div className="flex-1 h-px bg-slate-200" />
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                   Email address
                 </label>
                 <div className="relative">
@@ -169,7 +166,7 @@ export function LoginPage() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@example.com"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-200'
                       }`}
                   />
                 </div>
@@ -181,10 +178,10 @@ export function LoginPage() {
               {/* Password */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                     Password
                   </label>
-                  <Link to="/forgot-password" className="text-sm text-slate-400 hover:text-slate-300 transition-colors">
+                  <Link to="/forgot-password" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -197,14 +194,14 @@ export function LoginPage() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="••••••••"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-200'
                       }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-50"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -218,7 +215,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-slate-800 to-slate-900 rounded-xl font-semibold text-white hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg shadow-black/20 hover:shadow-black/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-white transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isLoading ? (
                   <>
@@ -235,9 +232,9 @@ export function LoginPage() {
             </form>
 
             {/* Sign up link */}
-            <p className="text-center text-slate-400 mt-8">
+            <p className="text-center text-slate-600 mt-8">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-slate-400 hover:text-slate-300 font-medium transition-colors">
+              <Link to="/signup" className="text-indigo-600 hover:text-indigo-500 font-medium transition-colors">
                 Sign up free
               </Link>
             </p>
@@ -251,65 +248,65 @@ export function LoginPage() {
           {/* Animated Illustration Container */}
           <div className="relative">
             {/* Main floating card */}
-            <div className="relative bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl animate-float">
+            <div className="relative bg-white/90 backdrop-blur-xl border border-slate-200 rounded-3xl p-8 shadow-xl shadow-slate-200/50 animate-float">
               {/* Browser mockup header */}
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <div className="flex-1 ml-4 h-6 bg-slate-700/50 rounded-lg" />
+                <div className="w-3 h-3 rounded-full bg-red-400" />
+                <div className="w-3 h-3 rounded-full bg-amber-400" />
+                <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                <div className="flex-1 ml-4 h-6 bg-slate-100 rounded-lg" />
               </div>
 
               {/* Code preview mockup */}
               <div className="space-y-3 font-mono text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400">const</span>
-                  <span className="text-blue-400">UI</span>
-                  <span className="text-slate-400">=</span>
-                  <span className="text-green-400">sketch</span>
-                  <span className="text-yellow-400">()</span>
-                  <span className="text-slate-400">;</span>
+                  <span className="text-slate-500">const</span>
+                  <span className="text-blue-600">UI</span>
+                  <span className="text-slate-500">=</span>
+                  <span className="text-emerald-600">sketch</span>
+                  <span className="text-amber-600">()</span>
+                  <span className="text-slate-500">;</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400">return</span>
-                  <span className="text-slate-400">&lt;</span>
-                  <span className="text-blue-400">Component</span>
-                  <span className="text-slate-400">/&gt;</span>
+                  <span className="text-slate-500">return</span>
+                  <span className="text-slate-500">&lt;</span>
+                  <span className="text-blue-600">Component</span>
+                  <span className="text-slate-500">/&gt;</span>
                 </div>
-                <div className="h-4 bg-slate-700/30 rounded w-3/4" />
-                <div className="h-4 bg-slate-700/30 rounded w-1/2" />
+                <div className="h-4 bg-slate-100 rounded w-3/4" />
+                <div className="h-4 bg-slate-100 rounded w-1/2" />
               </div>
 
               {/* Sparkle decoration */}
-              <div className="absolute -top-4 -right-4 w-12 h-12 bg-linear-to-br from-slate-800 to-black rounded-2xl flex items-center justify-center shadow-lg animate-pulse-glow">
-                <Wand2 className="w-6 h-6 text-white" />
+              <div className="absolute -top-4 -right-4 w-12 h-12 bg-indigo-100 rounded-2xl border border-indigo-200 flex items-center justify-center shadow-lg animate-pulse-glow">
+                <Wand2 className="w-6 h-6 text-indigo-600" />
               </div>
             </div>
 
             {/* Floating elements around the card */}
-            <div className="absolute -top-8 -left-8 w-16 h-16 bg-slate-800/20 backdrop-blur-lg rounded-2xl border border-slate-700/30 flex items-center justify-center animate-float-delayed shadow-lg">
-              <Code2 className="w-8 h-8 text-slate-400" />
+            <div className="absolute -top-8 -left-8 w-14 h-14 bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center animate-float-delayed shadow-md">
+              <Code2 className="w-7 h-7 text-slate-500" />
             </div>
 
-            <div className="absolute -bottom-6 -left-12 w-14 h-14 bg-slate-800/20 backdrop-blur-lg rounded-2xl border border-slate-700/30 flex items-center justify-center animate-float-slow shadow-lg">
-              <Palette className="w-7 h-7 text-slate-400" />
+            <div className="absolute -bottom-6 -left-12 w-12 h-12 bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center animate-float-slow shadow-md">
+              <Palette className="w-6 h-6 text-slate-500" />
             </div>
 
-            <div className="absolute top-1/2 -right-10 w-12 h-12 bg-pink-500/20 backdrop-blur-lg rounded-xl border border-pink-500/30 flex items-center justify-center animate-bounce-slow shadow-lg">
-              <Zap className="w-6 h-6 text-pink-400" />
+            <div className="absolute top-1/2 -right-10 w-10 h-10 bg-indigo-100 rounded-xl border border-indigo-200 flex items-center justify-center animate-bounce-slow shadow-md">
+              <Zap className="w-5 h-5 text-indigo-600" />
             </div>
 
-            <div className="absolute -bottom-8 right-8 w-20 h-20 bg-emerald-500/20 backdrop-blur-lg rounded-2xl border border-emerald-500/30 flex items-center justify-center animate-float shadow-lg">
-              <Sparkles className="w-10 h-10 text-emerald-400" />
+            <div className="absolute -bottom-8 right-8 w-16 h-16 bg-emerald-100 rounded-2xl border border-emerald-200 flex items-center justify-center animate-float shadow-md">
+              <Sparkles className="w-8 h-8 text-emerald-600" />
             </div>
           </div>
 
           {/* Text below illustration */}
           <div className="text-center mt-12">
-            <h2 className="text-2xl font-bold text-white mb-3">
+            <h2 className="text-2xl font-bold text-slate-900 mb-3">
               Transform Ideas into Code
             </h2>
-            <p className="text-slate-400">
+            <p className="text-slate-600">
               Join thousands of developers speeding up their UI workflow
             </p>
           </div>

@@ -2,6 +2,7 @@ import { ChevronDown, Home, LogOut, User, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from './Logo';
+import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../hooks/useAuth';
 
 interface HeaderProps {
@@ -31,23 +32,23 @@ export function Header(_props: HeaderProps) {
   };
 
   return (
-    <header className="h-14 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 flex items-center justify-between px-4 relative z-50">
+    <header className="h-14 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 relative z-50">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-linear-to-r from-black/5 via-transparent to-black/5 pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-r from-slate-50/50 via-transparent to-slate-50/50 pointer-events-none" />
 
       {/* Left: Logo & Navigation */}
       <div className="flex items-center gap-4 relative">
         {/* Home Button */}
         <Link
           to="/"
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 hover:border-slate-600 transition-all group"
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 hover:border-slate-300 transition-all group"
           title="Back to Home"
         >
-          <Home className="w-4 h-4 text-slate-400 group-hover:text-slate-300 transition-colors" />
+          <Home className="w-4 h-4 text-slate-500 group-hover:text-slate-700 transition-colors" />
         </Link>
 
         {/* Divider */}
-        <div className="w-px h-6 bg-slate-700/50" />
+        <div className="w-px h-6 bg-slate-200" />
 
         {/* Logo */}
         <Logo size="sm" />
@@ -119,21 +120,21 @@ export function Header(_props: HeaderProps) {
           <div className="relative ml-2">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/50 transition-all"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-all"
             >
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-8 h-8 rounded-full object-cover border-2 border-slate-700"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-linear-to-br from-slate-800 to-black flex items-center justify-center text-white text-xs font-semibold border-2 border-slate-700">
-                  {getInitials(user.name)}
-                </div>
-              )}
+              <AvatarImage
+                src={user.avatar}
+                alt={user.name}
+                className="w-8 h-8 rounded-full object-cover object-center border-2 border-slate-200"
+                fallback={
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold border-2 border-slate-200">
+                    {getInitials(user.name)}
+                  </div>
+                }
+                getInitials={getInitials}
+              />
               <ChevronDown
-                className={`w-4 h-4 text-slate-400 transition-transform duration-200 hidden sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 text-slate-500 transition-transform duration-200 hidden sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
               />
             </button>
 
@@ -144,11 +145,11 @@ export function Header(_props: HeaderProps) {
                   className="fixed inset-0 z-10"
                   onClick={() => setIsUserMenuOpen(false)}
                 />
-                <div className="absolute top-full mt-2 right-0 w-56 bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-20">
+                <div className="absolute top-full mt-2 right-0 w-56 bg-white backdrop-blur-xl border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 overflow-hidden z-20">
                   {/* User Info */}
-                  <div className="p-4 border-b border-slate-700/50">
-                    <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                  <div className="p-4 border-b border-slate-200">
+                    <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
                   </div>
 
                   {/* Menu Items */}
@@ -158,7 +159,7 @@ export function Header(_props: HeaderProps) {
                         setIsUserMenuOpen(false);
                         navigate('/sketches');
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-all"
                     >
                       <FolderOpen className="w-4 h-4" />
                       <span className="text-sm">My Sketches</span>
@@ -169,13 +170,13 @@ export function Header(_props: HeaderProps) {
                         setIsUserMenuOpen(false);
                         navigate('/profile');
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-all"
                     >
                       <User className="w-4 h-4" />
                       <span className="text-sm">Profile</span>
                     </button>
 
-                    <div className="my-1 h-px bg-slate-700/50" />
+                    <div className="my-1 h-px bg-slate-200" />
 
                     <button
                       onClick={() => {

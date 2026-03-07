@@ -152,7 +152,7 @@ export function SketchApp() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 overflow-hidden">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       {/* Header */}
       <Header
         selectedModel={state.selectedModel}

@@ -61,7 +61,7 @@ export function ResizableSplitPane({
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
-    <div ref={containerRef} className="flex h-full w-full overflow-hidden bg-slate-950">
+    <div ref={containerRef} className="flex h-full w-full overflow-hidden bg-slate-50">
       {/* Left Panel */}
       <div
         className="h-full overflow-hidden"
@@ -74,8 +74,8 @@ export function ResizableSplitPane({
       <div
         onMouseDown={handleMouseDown}
         className={`relative w-[3px] shrink-0 cursor-col-resize group transition-all duration-150 ${isDragging
-          ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'
-          : 'bg-slate-800 hover:bg-indigo-500/70'
+          ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.4)]'
+          : 'bg-slate-200 hover:bg-indigo-400'
           }`}
       >
         {/* Gradient glow on hover/drag */}
@@ -91,7 +91,7 @@ export function ResizableSplitPane({
         <div
           className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-0.5 py-3 rounded-full transition-all duration-150 ${isDragging
             ? 'bg-indigo-500 scale-110 shadow-lg shadow-indigo-500/30'
-            : 'bg-slate-700/80 group-hover:bg-indigo-500/80 group-hover:scale-105'
+            : 'bg-slate-300 group-hover:bg-indigo-500 group-hover:scale-105'
             }`}
         >
           <GripVertical

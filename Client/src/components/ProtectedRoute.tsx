@@ -13,13 +13,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Show loading state while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="w-12 h-12 border-2 border-indigo-500/30 rounded-full animate-ping absolute" />
+            <div className="w-12 h-12 border-2 border-indigo-200 rounded-full animate-ping absolute" />
             <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
           </div>
-          <p className="text-slate-400 text-sm">Loading...</p>
+          <p className="text-slate-600 text-sm">Loading...</p>
         </div>
       </div>
     );
@@ -43,19 +43,18 @@ export function PublicOnlyRoute({ children }: ProtectedRouteProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
-          <p className="text-slate-400 text-sm">Loading...</p>
+          <p className="text-slate-600 text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to landing page if already authenticated
+  // Redirect to dashboard if already authenticated
   if (isAuthenticated) {
-    // Redirect to the page they came from, or landing page
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/home';
     return <Navigate to={from} replace />;
   }
 

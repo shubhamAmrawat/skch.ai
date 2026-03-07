@@ -98,14 +98,14 @@ export function CodePreviewPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 relative overflow-hidden">
+    <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-linear-to-bl from-black/5 via-transparent to-black/5 pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
 
       {/* Tab Header */}
-      <div className="relative z-10 flex items-center justify-between px-3 py-2.5 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center justify-between px-3 py-2.5 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
         {/* Tab Buttons */}
-        <div className="flex items-center gap-1 p-1 bg-slate-800/50 rounded-xl border border-slate-700/30">
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
           <TabButton
             active={activeTab === 'preview'}
             onClick={() => onTabChange('preview')}
@@ -131,12 +131,12 @@ export function CodePreviewPanel({
         {/* Right Actions */}
         <div className="flex items-center gap-2">
           {isGenerating && !isIterating && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border border-slate-700/30 rounded-lg">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-lg">
               <div className="relative w-3 h-3">
-                <div className="absolute inset-0 rounded-full border-2 border-slate-700/30" />
-                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-slate-400 animate-spin" />
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-200" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
               </div>
-              <span className="text-xs font-medium text-slate-300">
+              <span className="text-xs font-medium text-indigo-700">
                 Generating...
               </span>
             </div>
@@ -145,7 +145,7 @@ export function CodePreviewPanel({
             <>
               <button
                 onClick={handleExportCode}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 hover:border-slate-600 rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg transition-all"
                 title="Download code as .tsx file"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -154,7 +154,7 @@ export function CodePreviewPanel({
               {activeTab === 'preview' && (
                 <button
                   onClick={handleOpenFullscreen}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 hover:border-slate-600 rounded-lg transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg transition-all"
                   title="Open in new tab"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
@@ -202,8 +202,8 @@ function TabButton({ active, onClick, icon, label }: TabButtonProps) {
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${active
-        ? 'bg-slate-700/80 text-white shadow-sm'
-        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'
+        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
         }`}
     >
       {icon}
@@ -256,25 +256,25 @@ function GeneratingState() {
       <div className="flex flex-col items-center gap-6 max-w-sm">
         {/* Animated loader */}
         <div className="relative w-20 h-20">
-          <div className="absolute inset-0 rounded-full border-2 border-slate-700/50" />
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-slate-600 animate-spin" />
-          <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-slate-700 animate-spin [animation-duration:1.5s] [animation-direction:reverse]" />
-          <div className="absolute inset-4 rounded-full border-2 border-transparent border-t-cyan-400 animate-spin [animation-duration:2s]" />
-          <div className="absolute inset-6 rounded-full bg-slate-800/80 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-slate-400 animate-pulse" />
+          <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-slate-400 animate-spin" />
+          <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-slate-500 animate-spin [animation-duration:1.5s] [animation-direction:reverse]" />
+          <div className="absolute inset-4 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin [animation-duration:2s]" />
+          <div className="absolute inset-6 rounded-full bg-white flex items-center justify-center border border-slate-200">
+            <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
           </div>
         </div>
 
         {/* Tip */}
         <div className="text-center">
-          <p className="text-sm font-medium text-slate-300 transition-all">
+          <p className="text-sm font-medium text-slate-700 transition-all">
             {currentTip}
           </p>
           <div className="flex items-center justify-center gap-1 mt-3">
             {GENERATING_TIPS.map((_, i) => (
               <div
                 key={i}
-                className={`h-1 rounded-full transition-all duration-300 ${i === currentTipIndex ? 'bg-slate-500 w-4' : 'bg-slate-700 w-1'
+                className={`h-1 rounded-full transition-all duration-300 ${i === currentTipIndex ? 'bg-indigo-500 w-4' : 'bg-slate-200 w-1'
                   }`}
               />
             ))}
@@ -282,8 +282,8 @@ function GeneratingState() {
         </div>
 
         {/* Quote */}
-        <div className="w-full p-4 bg-slate-800/40 rounded-xl border border-slate-700/30">
-          <p className="text-sm text-slate-300 italic leading-relaxed">
+        <div className="w-full p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <p className="text-sm text-slate-600 italic leading-relaxed">
             "{currentQuote.quote}"
           </p>
           <p className="text-xs text-slate-500 mt-2">
@@ -299,10 +299,10 @@ function PreviewView({ code }: { code: string }) {
   if (!code) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
-        <div className="w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mb-4">
-          <Eye className="w-7 h-7 text-slate-500" />
+        <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-4">
+          <Eye className="w-7 h-7 text-slate-400" />
         </div>
-        <h3 className="text-base font-medium text-slate-300 mb-1.5">
+        <h3 className="text-base font-medium text-slate-700 mb-1.5">
           No Preview Yet
         </h3>
         <p className="text-sm text-slate-500 max-w-[240px]">
@@ -313,7 +313,7 @@ function PreviewView({ code }: { code: string }) {
   }
 
   return (
-    <div className="h-full overflow-hidden bg-white rounded-tl-xl">
+    <div className="h-full overflow-hidden bg-white rounded-tl-xl border border-slate-200">
       <LivePreview code={code} />
     </div>
   );
@@ -342,10 +342,10 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-3">
               <MessageSquare className="w-6 h-6 text-slate-500" />
             </div>
-            <h3 className="text-base font-medium text-slate-300 mb-1">
+            <h3 className="text-base font-medium text-slate-700 mb-1">
               Refine Your UI
             </h3>
             <p className="text-sm text-slate-500 max-w-[220px] mb-4">
@@ -360,7 +360,7 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
                 <button
                   key={i}
                   onClick={() => setInputMessage(suggestion)}
-                  className="w-full text-left text-xs text-slate-400 bg-slate-800/40 hover:bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-700/30 hover:border-slate-600/50 transition-all"
+                  className="w-full text-left text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 transition-all"
                 >
                   "{suggestion}"
                 </button>
@@ -375,14 +375,14 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
                 className={`flex gap-2.5 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {message.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-lg bg-slate-800/30 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-slate-400" />
+                  <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 text-indigo-600" />
                   </div>
                 )}
                 <div
                   className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl ${message.role === 'user'
-                    ? 'bg-slate-800 text-white rounded-br-lg'
-                    : 'bg-slate-800/80 text-slate-200 rounded-bl-lg border border-slate-700/30'
+                    ? 'bg-indigo-600 text-white rounded-br-lg'
+                    : 'bg-white text-slate-700 rounded-bl-lg border border-slate-200'
                     }`}
                 >
                   <p className="text-sm leading-relaxed">{message.content}</p>
@@ -391,21 +391,21 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
                   </span>
                 </div>
                 {message.role === 'user' && (
-                  <div className="w-7 h-7 rounded-lg bg-slate-700/80 flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-slate-300" />
+                  <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-indigo-600" />
                   </div>
                 )}
               </div>
             ))}
             {isIterating && (
               <div className="flex gap-2.5 justify-start">
-                <div className="w-7 h-7 rounded-lg bg-slate-800/30 flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4 text-slate-400" />
+                <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 text-indigo-600" />
                 </div>
-                <div className="max-w-[75%] px-3.5 py-2.5 rounded-2xl bg-slate-800/80 text-slate-200 rounded-bl-lg border border-slate-700/30">
+                <div className="max-w-[75%] px-3.5 py-2.5 rounded-2xl bg-white text-slate-700 rounded-bl-lg border border-slate-200">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
-                    <p className="text-sm text-slate-300">Applying changes...</p>
+                    <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                    <p className="text-sm text-slate-600">Applying changes...</p>
                   </div>
                 </div>
               </div>
@@ -416,7 +416,7 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-slate-800/80 bg-slate-900/50">
+      <div className="p-3 border-t border-slate-200 bg-white">
         <div className="relative">
           <input
             type="text"
@@ -425,13 +425,13 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
             onKeyDown={onKeyDown}
             placeholder="Describe what to change..."
             disabled={isGenerating}
-            className="w-full px-4 py-2.5 pr-12 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500/40 focus:ring-2 focus:ring-slate-500/10 transition-all disabled:opacity-50"
+            className="w-full px-4 py-2.5 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
           />
           <button
             onClick={onSend}
             disabled={!inputMessage.trim() || isGenerating}
             title="Send"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-200 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-3.5 h-3.5 text-white" />
           </button>
@@ -453,10 +453,10 @@ function CodeView({ code }: { code: string }) {
   if (!code) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
-        <div className="w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mb-4">
-          <Code2 className="w-7 h-7 text-slate-500" />
+        <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-4">
+          <Code2 className="w-7 h-7 text-slate-400" />
         </div>
-        <h3 className="text-base font-medium text-slate-300 mb-1.5">
+        <h3 className="text-base font-medium text-slate-700 mb-1.5">
           No Code Yet
         </h3>
         <p className="text-sm text-slate-500 max-w-[240px]">
@@ -468,22 +468,22 @@ function CodeView({ code }: { code: string }) {
 
   return (
     <div className="h-full overflow-auto p-3">
-      <div className="bg-slate-800/60 rounded-xl border border-slate-700/40 overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         {/* File header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-800/80 border-b border-slate-700/40">
+        <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
               <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
               <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
             </div>
-            <span className="text-xs font-medium text-slate-400 ml-2">
+            <span className="text-xs font-medium text-slate-600 ml-2">
               GeneratedComponent.tsx
             </span>
           </div>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded-lg transition-all"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
           >
             {copied ? (
               <>
@@ -500,7 +500,7 @@ function CodeView({ code }: { code: string }) {
         </div>
 
         {/* Code */}
-        <pre className="p-4 overflow-auto code-editor text-slate-300 text-sm leading-relaxed">
+        <pre className="p-4 overflow-auto code-editor text-slate-700 text-sm leading-relaxed bg-slate-50/50">
           <code>
             {formatCodeWithHighlighting(code)}
           </code>
@@ -517,8 +517,8 @@ function formatCodeWithHighlighting(code: string) {
     const tokens = tokenizeLine(line);
 
     return (
-      <div key={i} className="flex hover:bg-slate-700/20 -mx-4 px-4">
-        <span className="w-10 text-slate-600 select-none text-right pr-4 text-xs">
+      <div key={i} className="flex hover:bg-slate-100 -mx-4 px-4">
+        <span className="w-10 text-slate-400 select-none text-right pr-4 text-xs">
           {i + 1}
         </span>
         <span className="flex-1">
@@ -545,14 +545,14 @@ function tokenizeLine(line: string): Token[] {
   while (remaining.length > 0) {
     const keywordMatch = remaining.match(/^(import|export|from|const|function|return|default)\b/);
     if (keywordMatch) {
-      tokens.push({ text: keywordMatch[0], className: 'text-slate-400' });
+      tokens.push({ text: keywordMatch[0], className: 'text-indigo-600' });
       remaining = remaining.slice(keywordMatch[0].length);
       continue;
     }
 
     const stringMatch = remaining.match(/^(["'`])[^"'`]*\1/);
     if (stringMatch) {
-      tokens.push({ text: stringMatch[0], className: 'text-emerald-400' });
+      tokens.push({ text: stringMatch[0], className: 'text-emerald-600' });
       remaining = remaining.slice(stringMatch[0].length);
       continue;
     }
@@ -563,7 +563,7 @@ function tokenizeLine(line: string): Token[] {
       if (jsxTagMatch[0].startsWith('</')) {
         tokens.push({ text: '/', className: 'text-slate-500' });
       }
-      tokens.push({ text: jsxTagMatch[1], className: 'text-cyan-400' });
+      tokens.push({ text: jsxTagMatch[1], className: 'text-cyan-600' });
       remaining = remaining.slice(jsxTagMatch[0].length);
       continue;
     }
@@ -574,20 +574,20 @@ function tokenizeLine(line: string): Token[] {
       if (htmlTagMatch[0].startsWith('</')) {
         tokens.push({ text: '/', className: 'text-slate-500' });
       }
-      tokens.push({ text: htmlTagMatch[1], className: 'text-pink-400' });
+      tokens.push({ text: htmlTagMatch[1], className: 'text-pink-600' });
       remaining = remaining.slice(htmlTagMatch[0].length);
       continue;
     }
 
     const attrMatch = remaining.match(/^(className|onClick|onChange|style|href|src|alt|type|value|placeholder)=/);
     if (attrMatch) {
-      tokens.push({ text: attrMatch[1], className: 'text-yellow-400' });
+      tokens.push({ text: attrMatch[1], className: 'text-amber-600' });
       tokens.push({ text: '=', className: 'text-slate-500' });
       remaining = remaining.slice(attrMatch[0].length);
       continue;
     }
 
-    tokens.push({ text: remaining[0], className: 'text-slate-300' });
+    tokens.push({ text: remaining[0], className: 'text-slate-700' });
     remaining = remaining.slice(1);
   }
 

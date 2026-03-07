@@ -14,11 +14,11 @@ interface FloatingShape {
 }
 
 const colors = [
-  'rgba(0, 0, 0, 0.25)',        // black
-  'rgba(20, 20, 20, 0.25)',     // dark gray-black
-  'rgba(30, 30, 30, 0.20)',     // lighter black
-  'rgba(10, 10, 10, 0.20)',     // very dark black
-  'rgba(15, 15, 15, 0.18)',     // medium black
+  'rgba(148, 163, 184, 0.08)',   // slate-400
+  'rgba(148, 163, 184, 0.06)',   // slate-400 lighter
+  'rgba(203, 213, 225, 0.07)',   // slate-300
+  'rgba(100, 116, 139, 0.06)',   // slate-500
+  'rgba(148, 163, 184, 0.05)',   // slate-400 very light
 ];
 
 function createShape(width: number, height: number): FloatingShape {
@@ -26,12 +26,12 @@ function createShape(width: number, height: number): FloatingShape {
   return {
     x: Math.random() * width,
     y: Math.random() * height,
-    size: Math.random() * 60 + 20,
-    speedX: (Math.random() - 0.5) * 0.3,
-    speedY: (Math.random() - 0.5) * 0.3,
+    size: Math.random() * 32 + 12,
+    speedX: (Math.random() - 0.5) * 0.08,
+    speedY: (Math.random() - 0.5) * 0.08,
     rotation: Math.random() * 360,
-    rotationSpeed: (Math.random() - 0.5) * 0.5,
-    opacity: Math.random() * 0.5 + 0.3,
+    rotationSpeed: (Math.random() - 0.5) * 0.1,
+    opacity: Math.random() * 0.2 + 0.1,
     type: types[Math.floor(Math.random() * types.length)],
     color: colors[Math.floor(Math.random() * colors.length)],
   };
@@ -43,8 +43,8 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: FloatingShape) {
   ctx.rotate((shape.rotation * Math.PI) / 180);
   ctx.globalAlpha = shape.opacity;
   ctx.fillStyle = shape.color;
-  ctx.strokeStyle = shape.color.replace('0.1', '0.3');
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = shape.color;
+  ctx.lineWidth = 0.5;
 
   switch (shape.type) {
     case 'circle':
@@ -90,7 +90,7 @@ export function AuthBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
   const shapesRef = useRef<FloatingShape[]>([]);
-  const mouseRef = useRef({ x: 0, y: 0 });
+  const mouseRef = useRef({ x: -999, y: -999 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -111,8 +111,8 @@ export function AuthBackground() {
     };
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Create floating shapes
-    const shapeCount = Math.min(15, Math.floor((window.innerWidth * window.innerHeight) / 80000));
+    // Create floating shapes - fewer for less distraction
+    const shapeCount = Math.min(6, Math.floor((window.innerWidth * window.innerHeight) / 200000));
     const shapes: FloatingShape[] = [];
     for (let i = 0; i < shapeCount; i++) {
       shapes.push(createShape(canvas.width, canvas.height));
@@ -122,7 +122,7 @@ export function AuthBackground() {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw mesh gradient background
+      // Draw subtle mesh gradient - light theme
       const gradient = ctx.createRadialGradient(
         canvas.width * 0.3,
         canvas.height * 0.3,
@@ -131,46 +131,33 @@ export function AuthBackground() {
         canvas.height * 0.5,
         canvas.width * 0.8
       );
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
-      gradient.addColorStop(0.5, 'rgba(20, 20, 20, 0.10)');
+      gradient.addColorStop(0, 'rgba(148, 163, 184, 0.03)');
+      gradient.addColorStop(0.5, 'rgba(203, 213, 225, 0.02)');
       gradient.addColorStop(1, 'transparent');
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw second gradient
-      const gradient2 = ctx.createRadialGradient(
-        canvas.width * 0.7,
-        canvas.height * 0.7,
-        0,
-        canvas.width * 0.6,
-        canvas.height * 0.6,
-        canvas.width * 0.6
-      );
-      gradient2.addColorStop(0, 'rgba(10, 10, 10, 0.12)');
-      gradient2.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)');
-      gradient2.addColorStop(1, 'transparent');
-      ctx.fillStyle = gradient2;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const shapes = shapesRef.current;
       const mouse = mouseRef.current;
 
       shapes.forEach((shape) => {
-        // Update position
+        // Subtle mouse repulsion - gentle aesthetic reaction
+        if (mouse.x > 0 && mouse.y > 0) {
+          const dx = shape.x - mouse.x;
+          const dy = shape.y - mouse.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 200 && distance > 0) {
+            const force = (200 - distance) / 200 * 0.015;
+            shape.speedX += (dx / distance) * force;
+            shape.speedY += (dy / distance) * force;
+          }
+        }
+
+        // Update position - slow, calm movement
         shape.x += shape.speedX;
         shape.y += shape.speedY;
         shape.rotation += shape.rotationSpeed;
-
-        // Mouse repulsion
-        const dx = shape.x - mouse.x;
-        const dy = shape.y - mouse.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 150) {
-          const force = (150 - distance) / 150;
-          shape.speedX += (dx / distance) * force * 0.02;
-          shape.speedY += (dy / distance) * force * 0.02;
-        }
 
         // Wrap around edges
         if (shape.x < -shape.size) shape.x = canvas.width + shape.size;
@@ -178,23 +165,18 @@ export function AuthBackground() {
         if (shape.y < -shape.size) shape.y = canvas.height + shape.size;
         if (shape.y > canvas.height + shape.size) shape.y = -shape.size;
 
-        // Dampen velocity
-        shape.speedX *= 0.99;
-        shape.speedY *= 0.99;
-
         // Draw shape
         drawShape(ctx, shape);
       });
 
-      // Draw mouse glow
+      // Very subtle mouse glow
       if (mouse.x > 0 && mouse.y > 0) {
-        const mouseGradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 200);
-        mouseGradient.addColorStop(0, 'rgba(0, 0, 0, 0.20)');
-        mouseGradient.addColorStop(0.5, 'rgba(20, 20, 20, 0.10)');
-        mouseGradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = mouseGradient;
+        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 150);
+        gradient.addColorStop(0, 'rgba(148, 163, 184, 0.03)');
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 200, 0, Math.PI * 2);
+        ctx.arc(mouse.x, mouse.y, 150, 0, Math.PI * 2);
         ctx.fill();
       }
 

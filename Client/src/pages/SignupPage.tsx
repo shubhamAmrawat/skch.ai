@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Check, Rocket, Layers, MousePointer2, PenTool, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { AuthBackground } from '../components/AuthBackground';
@@ -8,7 +8,13 @@ import { useAuth } from '../hooks/useAuth';
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register, loginWithGoogle } = useAuth();
+
+  const getRedirectPath = () => {
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+    return from || '/home';
+  };
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +42,7 @@ export function SignupPage() {
       });
 
       if (response.success) {
-        navigate('/', { replace: true });
+        navigate(getRedirectPath(), { replace: true });
       } else {
         // Handle errors
         if (response.details) {
@@ -69,7 +75,7 @@ export function SignupPage() {
         const response = await loginWithGoogle(tokenResponse.access_token);
 
         if (response.success) {
-          navigate('/', { replace: true });
+          navigate(getRedirectPath(), { replace: true });
         } else {
           setError(response.message || response.error || 'Google signup failed');
         }
@@ -94,7 +100,7 @@ export function SignupPage() {
   const passwordStrength = getPasswordStrength(formData.password);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex relative overflow-hidden">
       {/* Animated Background */}
       <AuthBackground />
 
@@ -107,10 +113,10 @@ export function SignupPage() {
           </Link>
 
           {/* Form Container with Glass Effect */}
-          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl shadow-black/20">
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-3xl p-8 shadow-xl shadow-slate-200/50">
             {/* Header */}
-            <h1 className="text-3xl font-bold text-white mb-2">Create your account</h1>
-            <p className="text-slate-400 mb-8">
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Create your account</h1>
+            <p className="text-slate-600 mb-8">
               Start your journey to faster UI development
             </p>
 
@@ -127,7 +133,7 @@ export function SignupPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isLoading || isGoogleLoading}
-              className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-slate-800/50 border border-slate-700 rounded-xl text-white font-medium hover:bg-slate-800/70 hover:border-slate-600 transition-all mb-6 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium hover:bg-slate-50 hover:border-slate-300 transition-all mb-6 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGoogleLoading ? (
                 <>
@@ -149,16 +155,16 @@ export function SignupPage() {
 
             {/* Divider */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="flex-1 h-px bg-slate-800" />
+              <div className="flex-1 h-px bg-slate-200" />
               <span className="text-sm text-slate-500">or continue with email</span>
-              <div className="flex-1 h-px bg-slate-800" />
+              <div className="flex-1 h-px bg-slate-200" />
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Name */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
                   Full name
                 </label>
                 <div className="relative">
@@ -170,7 +176,7 @@ export function SignupPage() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="John Doe"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.name ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.name ? 'border-red-500' : 'border-slate-200'
                       }`}
                   />
                 </div>
@@ -181,7 +187,7 @@ export function SignupPage() {
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                   Email address
                 </label>
                 <div className="relative">
@@ -193,7 +199,7 @@ export function SignupPage() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@example.com"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.email ? 'border-red-500' : 'border-slate-200'
                       }`}
                   />
                 </div>
@@ -204,7 +210,7 @@ export function SignupPage() {
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
@@ -216,14 +222,14 @@ export function SignupPage() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="••••••••"
                     disabled={isLoading}
-                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-800/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-700'
+                    className={`w-full pl-12 pr-12 py-3.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${fieldErrors.password ? 'border-red-500' : 'border-slate-200'
                       }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-50"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -261,16 +267,16 @@ export function SignupPage() {
               {/* Terms */}
               <p className="text-xs text-slate-500">
                 By signing up, you agree to our{' '}
-                <Link to="/terms" className="text-slate-400 hover:text-slate-300">Terms of Service</Link>
+                <Link to="/terms" className="text-indigo-600 hover:text-indigo-500">Terms of Service</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-slate-400 hover:text-slate-300">Privacy Policy</Link>
+                <Link to="/privacy" className="text-indigo-600 hover:text-indigo-500">Privacy Policy</Link>
               </p>
 
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-linear-to-r from-slate-800 to-slate-900 rounded-xl font-semibold text-white hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg shadow-black/20 hover:shadow-black/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-white transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isLoading ? (
                   <>
@@ -287,9 +293,9 @@ export function SignupPage() {
             </form>
 
             {/* Login link */}
-            <p className="text-center text-slate-400 mt-8">
+            <p className="text-center text-slate-600 mt-8">
               Already have an account?{' '}
-              <Link to="/login" className="text-slate-400 hover:text-slate-300 font-medium transition-colors">
+              <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium transition-colors">
                 Sign in
               </Link>
             </p>
@@ -303,75 +309,65 @@ export function SignupPage() {
           {/* Animated Illustration - Sketch to UI Flow */}
           <div className="relative">
             {/* Sketch Card (Left) */}
-            <div className="absolute -left-4 top-8 w-48 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl animate-float-delayed">
+            <div className="absolute -left-4 top-8 w-48 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-2xl p-4 shadow-xl shadow-slate-200/50 animate-float-delayed">
               <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
                 <PenTool className="w-3 h-3" /> Sketch
               </div>
               <div className="space-y-2">
-                <div className="h-6 bg-slate-700/40 rounded-lg border-2 border-dashed border-slate-600" />
+                <div className="h-6 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300" />
                 <div className="flex gap-2">
-                  <div className="h-12 flex-1 bg-slate-700/40 rounded border-2 border-dashed border-slate-600" />
-                  <div className="h-12 flex-1 bg-slate-700/40 rounded border-2 border-dashed border-slate-600" />
+                  <div className="h-12 flex-1 bg-slate-50 rounded border-2 border-dashed border-slate-300" />
+                  <div className="h-12 flex-1 bg-slate-50 rounded border-2 border-dashed border-slate-300" />
                 </div>
-                <div className="h-8 bg-slate-700/40 rounded-lg border-2 border-dashed border-slate-600" />
+                <div className="h-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-300" />
               </div>
             </div>
 
             {/* Arrow/Flow indicator */}
             <div className="absolute left-40 top-24 z-20">
               <div className="flex items-center gap-2 animate-pulse">
-                <div className="w-16 h-0.5 bg-linear-to-r from-slate-700 to-slate-800" />
-                <div className="w-8 h-8 rounded-full bg-linear-to-br from-slate-800 to-black flex items-center justify-center shadow-lg animate-pulse-glow">
-                  <Sparkles className="w-4 h-4 text-white" />
+                <div className="w-16 h-0.5 bg-slate-200" />
+                <div className="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center shadow-md animate-pulse-glow">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
                 </div>
-                <div className="w-16 h-0.5 bg-linear-to-r from-slate-800 to-slate-900" />
+                <div className="w-16 h-0.5 bg-slate-200" />
               </div>
             </div>
 
             {/* Generated UI Card (Right) */}
-            <div className="absolute right-0 top-0 w-56 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl animate-float">
+            <div className="absolute right-0 top-0 w-56 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-2xl p-4 shadow-xl shadow-slate-200/50 animate-float">
               <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
                 <Layers className="w-3 h-3" /> Generated UI
               </div>
               <div className="space-y-2">
-                <div className="h-6 bg-linear-to-r from-slate-700/30 to-slate-800/30 rounded-lg flex items-center px-2">
-                  <div className="w-2 h-2 rounded-full bg-slate-500" />
-                  <div className="ml-2 h-2 w-16 bg-slate-600 rounded" />
+                <div className="h-6 bg-slate-100 rounded-lg flex items-center px-2">
+                  <div className="w-2 h-2 rounded-full bg-slate-400" />
+                  <div className="ml-2 h-2 w-16 bg-slate-300 rounded" />
                 </div>
                 <div className="flex gap-2">
-                  <div className="h-14 flex-1 bg-linear-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-2">
-                    <div className="w-full h-2 bg-slate-600 rounded mb-1" />
-                    <div className="w-3/4 h-2 bg-slate-700 rounded" />
+                  <div className="h-14 flex-1 bg-indigo-50 rounded-lg p-2">
+                    <div className="w-full h-2 bg-indigo-200 rounded mb-1" />
+                    <div className="w-3/4 h-2 bg-indigo-100 rounded" />
                   </div>
-                  <div className="h-14 flex-1 bg-linear-to-br from-slate-700/20 to-slate-800/20 rounded-lg p-2">
-                    <div className="w-full h-2 bg-slate-600 rounded mb-1" />
-                    <div className="w-3/4 h-2 bg-slate-700 rounded" />
+                  <div className="h-14 flex-1 bg-violet-50 rounded-lg p-2">
+                    <div className="w-full h-2 bg-violet-200 rounded mb-1" />
+                    <div className="w-3/4 h-2 bg-violet-100 rounded" />
                   </div>
                 </div>
-                <div className="h-8 bg-linear-to-r from-slate-800 to-black rounded-lg flex items-center justify-center">
+                <div className="h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                   <span className="text-[10px] text-white font-medium">Get Started</span>
                 </div>
               </div>
             </div>
 
             {/* Floating decorative elements */}
-            <div className="absolute -top-12 right-20 w-14 h-14 bg-emerald-500/20 backdrop-blur-lg rounded-2xl border border-emerald-500/30 flex items-center justify-center animate-bounce-slow shadow-lg">
-              <Rocket className="w-7 h-7 text-emerald-400" />
+            <div className="absolute -top-12 right-20 w-12 h-12 bg-emerald-100 rounded-2xl border border-emerald-200 flex items-center justify-center animate-bounce-slow shadow-md">
+              <Rocket className="w-6 h-6 text-emerald-600" />
             </div>
 
-            <div className="absolute bottom-0 left-20 w-12 h-12 bg-pink-500/20 backdrop-blur-lg rounded-xl border border-pink-500/30 flex items-center justify-center animate-float-slow shadow-lg">
-              <MousePointer2 className="w-6 h-6 text-pink-400" />
+            <div className="absolute bottom-0 left-20 w-10 h-10 bg-indigo-100 rounded-xl border border-indigo-200 flex items-center justify-center animate-float-slow shadow-md">
+              <MousePointer2 className="w-5 h-5 text-indigo-600" />
             </div>
-
-            {/* Connection lines (decorative) */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
-              <defs>
-                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgba(0, 0, 0, 0.3)" />
-                  <stop offset="100%" stopColor="rgba(20, 20, 20, 0.3)" />
-                </linearGradient>
-              </defs>
-            </svg>
           </div>
 
           {/* Features list below illustration */}
@@ -383,10 +379,10 @@ export function SignupPage() {
               'Chat-based refinements',
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-                <div className="w-6 h-6 rounded-full bg-slate-800/20 flex items-center justify-center">
-                  <Check className="w-4 h-4 text-slate-400" />
+                <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-indigo-600" />
                 </div>
-                <span className="text-slate-300">{feature}</span>
+                <span className="text-slate-700">{feature}</span>
               </div>
             ))}
           </div>

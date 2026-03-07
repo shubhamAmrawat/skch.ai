@@ -22,34 +22,34 @@ html, body, #root {
 
 body {
   font-family: var(--font-sans);
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: #f8fafc;
+  color: #1e293b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar for light theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #94a3b8;
 }
 
 /* Dotted grid background pattern */
 .dotted-grid {
-  background-image: radial-gradient(circle, #475569 1px, transparent 1px);
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -74,9 +74,9 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    #1e293b 0%,
-    #334155 50%,
-    #1e293b 100%
+    #e2e8f0 0%,
+    #f1f5f9 50%,
+    #e2e8f0 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -85,10 +85,10 @@ body {
 /* Pulse animation for generating state */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
   }
   50% {
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.25);
   }
 }
 
@@ -118,24 +118,24 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tldraw customizations - Clean minimal theme */
+/* Tldraw customizations - Clean light theme */
 .tldraw-container {
-  --color-background: #0f172a;
-  --color-panel: #1e293b;
+  --color-background: #f8fafc;
+  --color-panel: #ffffff;
 }
 
 .tldraw-container .tl-background {
-  background-color: #0f172a !important;
+  background-color: #f8fafc !important;
 }
 
 /* Make tldraw toolbar blend with our theme */
 .tldraw-container .tlui-layout {
-  --color-background: #1e293b;
-  --color-low: #334155;
-  --color-muted-1: #475569;
+  --color-background: #ffffff;
+  --color-low: #f1f5f9;
+  --color-muted-1: #94a3b8;
   --color-muted-2: #64748b;
-  --color-text: #e2e8f0;
-  --color-primary: #1a1a1a;
+  --color-text: #1e293b;
+  --color-primary: #1e293b;
 }
 
 /* ===== HIDE UNNECESSARY TLDRAW UI ELEMENTS ===== */
@@ -196,12 +196,12 @@ body {
 
 /* Make the toolbar match our theme */
 .tldraw-container .tlui-toolbar {
-  background: rgba(30, 41, 59, 0.95) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(71, 85, 105, 0.5) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
   border-radius: 12px !important;
   padding: 4px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Style the toolbar buttons */
@@ -211,12 +211,12 @@ body {
 }
 
 .tldraw-container .tlui-toolbar__tools button:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: rgba(241, 245, 249, 0.8) !important;
 }
 
 .tldraw-container .tlui-toolbar__tools button[data-state="selected"],
 .tldraw-container .tlui-toolbar__tools button[aria-pressed="true"] {
-  background: rgba(0, 0, 0, 0.4) !important;
+  background: rgba(226, 232, 240, 0.8) !important;
 }
 
 /* Hide the extras/overflow menu */
@@ -229,7 +229,7 @@ body {
 /* Add subtle grid pattern to canvas */
 .tldraw-container .tl-background {
   background-image: 
-    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.2) 1px, transparent 0) !important;
+    radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.15) 1px, transparent 0) !important;
   background-size: 24px 24px !important;
 }
 
@@ -335,7 +335,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.4) 50%,
     transparent 100%
   );
   background-size: 200% 100%;

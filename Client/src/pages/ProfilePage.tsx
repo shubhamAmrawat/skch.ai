@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { Logo } from '../components/Logo';
 import { AuthBackground } from '../components/AuthBackground';
+import { AvatarImage } from '../components/AvatarImage';
 import { uploadAvatar, removeAvatar } from '../services/upload';
 
 export function ProfilePage() {
@@ -363,12 +364,12 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
       {/* Animated Background */}
       <AuthBackground />
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="group">
@@ -377,7 +378,7 @@ export function ProfilePage() {
 
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -392,20 +393,20 @@ export function ProfilePage() {
           {/* Message Banner */}
           {message && (
             <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${message.type === 'success'
-              ? 'bg-emerald-500/10 border border-emerald-500/30'
-              : 'bg-red-500/10 border border-red-500/30'
+              ? 'bg-emerald-50 border border-emerald-200'
+              : 'bg-red-50 border border-red-200'
               }`}>
               {message.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               ) : (
-                <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
               )}
-              <p className={message.type === 'success' ? 'text-emerald-400' : 'text-red-400'}>
+              <p className={message.type === 'success' ? 'text-emerald-700' : 'text-red-700'}>
                 {message.text}
               </p>
               <button
                 onClick={() => setMessage(null)}
-                className="ml-auto text-slate-400 hover:text-white"
+                className="ml-auto text-slate-500 hover:text-slate-700"
                 title="Dismiss message"
               >
                 <X className="w-4 h-4" />
@@ -414,29 +415,29 @@ export function ProfilePage() {
           )}
 
           {/* Profile Header Card */}
-          <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-3xl overflow-hidden mb-8">
+          <div className="relative bg-white backdrop-blur-xl border border-slate-200 rounded-3xl overflow-hidden mb-8 shadow-lg shadow-slate-200/50">
             {/* Background gradient */}
-            <div className="absolute inset-0 bg-linear-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10" />
+            <div className="absolute inset-0 bg-linear-to-br from-indigo-50/50 via-white to-purple-50/30" />
 
             {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-200/20 rounded-full blur-3xl" />
 
             <div className="relative p-8 md:p-12">
               <div className="flex flex-col md:flex-row items-center gap-8">
                 {/* Avatar */}
                 <div className="relative group">
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-32 h-32 rounded-2xl object-cover border-4 border-indigo-500/30 shadow-2xl shadow-indigo-500/20"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 rounded-2xl bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-4xl font-bold shadow-2xl shadow-indigo-500/20 border-4 border-indigo-500/30">
-                      {getInitials(user.name)}
-                    </div>
-                  )}
+                  <AvatarImage
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-32 h-32 rounded-2xl object-cover object-center border-4 border-indigo-200 shadow-xl shadow-indigo-500/10"
+                    fallback={
+                      <div className="w-32 h-32 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-4xl font-bold shadow-xl shadow-indigo-500/20 border-4 border-indigo-200">
+                        {getInitials(user.name)}
+                      </div>
+                    }
+                    getInitials={getInitials}
+                  />
 
                   {/* Camera overlay - clickable to edit avatar */}
                   <button
@@ -451,7 +452,7 @@ export function ProfilePage() {
                   </button>
 
                   {/* Online indicator */}
-                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center border-4 border-slate-900">
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center border-4 border-white">
                     <div className="w-2 h-2 bg-white rounded-full" />
                   </div>
                 </div>
@@ -464,7 +465,7 @@ export function ProfilePage() {
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="text-3xl font-bold bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                        className="text-3xl font-bold bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 focus:outline-none focus:border-indigo-500"
                         autoFocus
                         placeholder="Your name"
                         aria-label="Full name"
@@ -486,18 +487,18 @@ export function ProfilePage() {
                           setIsEditing(false);
                           setFormData({ name: user.name });
                         }}
-                        className="p-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
+                        className="p-2 bg-slate-200 rounded-lg hover:bg-slate-300 transition-colors"
                         title="Cancel editing"
                       >
-                        <X className="w-5 h-5 text-white" />
+                        <X className="w-5 h-5 text-slate-700" />
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
-                      <h1 className="text-3xl font-bold text-white">{user.name}</h1>
+                      <h1 className="text-3xl font-bold text-slate-900">{user.name}</h1>
                       <button
                         onClick={() => setIsEditing(true)}
-                        className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/50 rounded-lg transition-all"
+                        className="p-2 text-slate-500 hover:text-indigo-500 hover:bg-slate-100 rounded-lg transition-all"
                         title="Edit name"
                       >
                         <Edit3 className="w-5 h-5" />
@@ -505,17 +506,17 @@ export function ProfilePage() {
                     </div>
                   )}
 
-                  <p className="text-slate-400 flex items-center gap-2 justify-center md:justify-start mb-4">
+                  <p className="text-slate-600 flex items-center gap-2 justify-center md:justify-start mb-4">
                     <Mail className="w-4 h-4" />
                     {user.email}
                   </p>
 
                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-indigo-300 text-sm">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full text-indigo-700 text-sm">
                       <Sparkles className="w-3.5 h-3.5" />
                       Pro Member
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-300 text-sm">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm">
                       <Shield className="w-3.5 h-3.5" />
                       Verified
                     </span>
@@ -533,7 +534,7 @@ export function ProfilePage() {
                   </button> */}
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 px-6 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 hover:bg-slate-800 hover:border-slate-600 transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-200 hover:border-slate-300 transition-all"
                   >
                     <LogOut className="w-4 h-4" />
                     Logout
@@ -566,43 +567,43 @@ export function ProfilePage() {
           {/* Settings Sections */}
           <div className="grid md:grid-cols-2 gap-8">
             {/* Account Settings */}
-            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                <User className="w-5 h-5 text-indigo-400" />
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                <User className="w-5 h-5 text-indigo-500" />
                 Account Details
               </h2>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-slate-200">
                   <div>
-                    <p className="text-sm text-slate-400">Email</p>
-                    <p className="text-white">{user.email}</p>
+                    <p className="text-sm text-slate-500">Email</p>
+                    <p className="text-slate-900">{user.email}</p>
                   </div>
-                  <Mail className="w-5 h-5 text-slate-500" />
+                  <Mail className="w-5 h-5 text-slate-400" />
                 </div>
 
-                <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-slate-200">
                   <div>
-                    <p className="text-sm text-slate-400">Member Since</p>
-                    <p className="text-white">{formatDate(user.createdAt)}</p>
+                    <p className="text-sm text-slate-500">Member Since</p>
+                    <p className="text-slate-900">{formatDate(user.createdAt)}</p>
                   </div>
-                  <Calendar className="w-5 h-5 text-slate-500" />
+                  <Calendar className="w-5 h-5 text-slate-400" />
                 </div>
 
                 <div className="flex items-center justify-between py-3">
                   <div>
-                    <p className="text-sm text-slate-400">Auth Provider</p>
-                    <p className="text-white capitalize">{user.authProvider || 'Email'}</p>
+                    <p className="text-sm text-slate-500">Auth Provider</p>
+                    <p className="text-slate-900 capitalize">{user.authProvider || 'Email'}</p>
                   </div>
-                  <Shield className="w-5 h-5 text-slate-500" />
+                  <Shield className="w-5 h-5 text-slate-400" />
                 </div>
               </div>
             </div>
 
             {/* Security Settings */}
-            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                <Key className="w-5 h-5 text-indigo-400" />
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                <Key className="w-5 h-5 text-indigo-500" />
                 Security
               </h2>
 
@@ -610,9 +611,9 @@ export function ProfilePage() {
                 <div className="space-y-4">
                   {/* Current Password */}
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2">Current Password</label>
+                    <label className="block text-sm text-slate-600 mb-2">Current Password</label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                       <input
                         type={showPasswords.current ? 'text' : 'password'}
                         value={passwordData.currentPassword}
@@ -620,14 +621,14 @@ export function ProfilePage() {
                           setPasswordData({ ...passwordData, currentPassword: e.target.value });
                           setPasswordErrors(prev => ({ ...prev, currentPassword: '' }));
                         }}
-                        className={`w-full pl-12 pr-12 py-3 bg-slate-800/50 border rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all ${passwordErrors.currentPassword ? 'border-red-500' : 'border-slate-700'
+                        className={`w-full pl-12 pr-12 py-3 bg-slate-50 border rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all ${passwordErrors.currentPassword ? 'border-red-500' : 'border-slate-200'
                           }`}
                         placeholder="••••••••"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
                         title={showPasswords.current ? 'Hide password' : 'Show password'}
                       >
                         {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -643,21 +644,21 @@ export function ProfilePage() {
 
                   {/* New Password */}
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2">New Password</label>
+                    <label className="block text-sm text-slate-600 mb-2">New Password</label>
                     <div className="relative">
-                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                       <input
                         type={showPasswords.new ? 'text' : 'password'}
                         value={passwordData.newPassword}
                         onChange={(e) => handleNewPasswordChange(e.target.value)}
-                        className={`w-full pl-12 pr-12 py-3 bg-slate-800/50 border rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all ${passwordErrors.newPassword ? 'border-red-500' : passwordData.newPassword && !passwordErrors.newPassword ? 'border-emerald-500' : 'border-slate-700'
+                        className={`w-full pl-12 pr-12 py-3 bg-slate-50 border rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all ${passwordErrors.newPassword ? 'border-red-500' : passwordData.newPassword && !passwordErrors.newPassword ? 'border-emerald-500' : 'border-slate-200'
                           }`}
                         placeholder="••••••••"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
                         title={showPasswords.new ? 'Hide password' : 'Show password'}
                       >
                         {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -682,21 +683,21 @@ export function ProfilePage() {
 
                   {/* Confirm New Password */}
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2">Confirm New Password</label>
+                    <label className="block text-sm text-slate-600 mb-2">Confirm New Password</label>
                     <div className="relative">
-                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                       <input
                         type={showPasswords.confirm ? 'text' : 'password'}
                         value={passwordData.confirmPassword}
                         onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                        className={`w-full pl-12 pr-12 py-3 bg-slate-800/50 border rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all ${passwordErrors.confirmPassword ? 'border-red-500' : passwordData.confirmPassword && !passwordErrors.confirmPassword ? 'border-emerald-500' : 'border-slate-700'
+                        className={`w-full pl-12 pr-12 py-3 bg-slate-50 border rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all ${passwordErrors.confirmPassword ? 'border-red-500' : passwordData.confirmPassword && !passwordErrors.confirmPassword ? 'border-emerald-500' : 'border-slate-200'
                           }`}
                         placeholder="••••••••"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
                         title={showPasswords.confirm ? 'Hide password' : 'Show password'}
                       >
                         {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -738,7 +739,7 @@ export function ProfilePage() {
                         setPasswordErrors({ currentPassword: '', newPassword: '', confirmPassword: '' });
                         setShowPasswords({ current: false, new: false, confirm: false });
                       }}
-                      className="px-4 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition-colors"
+                      className="px-4 py-3 bg-slate-200 rounded-xl text-slate-700 hover:bg-slate-300 transition-colors"
                     >
                       Cancel
                     </button>
@@ -746,33 +747,33 @@ export function ProfilePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                  <div className="flex items-center justify-between py-3 border-b border-slate-200">
                     <div>
-                      <p className="text-white">Password</p>
-                      <p className="text-sm text-slate-400">Last changed: Never</p>
+                      <p className="text-slate-900">Password</p>
+                      <p className="text-sm text-slate-500">Last changed: Never</p>
                     </div>
                     <button
                       onClick={() => setIsChangingPassword(true)}
-                      className="px-4 py-2 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-sm"
+                      className="px-4 py-2 bg-slate-100 rounded-lg text-slate-700 hover:bg-slate-200 transition-all text-sm"
                     >
                       Change
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                  <div className="flex items-center justify-between py-3 border-b border-slate-200">
                     <div>
-                      <p className="text-white">Two-Factor Auth</p>
-                      <p className="text-sm text-slate-400">Add extra security</p>
+                      <p className="text-slate-900">Two-Factor Auth</p>
+                      <p className="text-sm text-slate-500">Add extra security</p>
                     </div>
-                    <span className="px-3 py-1 bg-slate-800 rounded-lg text-slate-500 text-sm">
+                    <span className="px-3 py-1 bg-slate-100 rounded-lg text-slate-500 text-sm">
                       Coming Soon
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <p className="text-white">Active Sessions</p>
-                      <p className="text-sm text-slate-400">Manage your devices</p>
+                      <p className="text-slate-900">Active Sessions</p>
+                      <p className="text-sm text-slate-500">Manage your devices</p>
                     </div>
                     <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-sm">
                       1 Active
@@ -844,12 +845,12 @@ export function ProfilePage() {
           </div>
 
           {/* Danger Zone */}
-          <div className="mt-8 bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
-            <h2 className="text-xl font-semibold text-red-400 mb-4">Danger Zone</h2>
-            <p className="text-slate-400 mb-4">
+          <div className="mt-8 bg-red-50 border border-red-200 rounded-2xl p-6">
+            <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
+            <p className="text-slate-600 mb-4">
               Once you delete your account, there is no going back. Please be certain.
             </p>
-            <button className="px-6 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 hover:bg-red-500/20 transition-all">
+            <button className="px-6 py-3 bg-red-100 border border-red-200 rounded-xl text-red-600 hover:bg-red-200 transition-all">
               Delete Account
             </button>
           </div>
@@ -869,11 +870,11 @@ export function ProfilePage() {
           />
 
           {/* Modal */}
-          <div className="relative bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <div className="relative bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-indigo-500" />
                 Change Profile Picture
               </h3>
               <button
@@ -881,7 +882,7 @@ export function ProfilePage() {
                   setIsEditingAvatar(false);
                   resetAvatarModal();
                 }}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-slate-700 transition-colors"
                 title="Close"
               >
                 <X className="w-5 h-5" />
@@ -917,7 +918,7 @@ export function ProfilePage() {
                   <img
                     src={previewUrl}
                     alt="Avatar preview"
-                    className="w-28 h-28 rounded-2xl object-cover border-4 border-indigo-500/50 shadow-lg shadow-indigo-500/20"
+                    className="w-28 h-28 rounded-2xl object-cover object-center border-4 border-indigo-200 shadow-lg"
                   />
                   <button
                     onClick={() => {
@@ -932,10 +933,16 @@ export function ProfilePage() {
                   </button>
                 </div>
               ) : user.avatar ? (
-                <img
+                <AvatarImage
                   src={user.avatar}
                   alt={user.name}
-                  className="w-28 h-28 rounded-2xl object-cover border-4 border-slate-700"
+                  className="w-28 h-28 rounded-2xl object-cover object-center border-4 border-slate-200"
+                  fallback={
+                    <div className="w-28 h-28 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-3xl font-bold border-4 border-slate-200">
+                      {getInitials(user.name)}
+                    </div>
+                  }
+                  getInitials={getInitials}
                 />
               ) : (
                 <div className="w-28 h-28 rounded-2xl bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-3xl font-bold border-4 border-slate-700">
@@ -953,8 +960,8 @@ export function ProfilePage() {
               className={`
                 relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200
                 ${isDragging
-                  ? 'border-indigo-500 bg-indigo-500/10'
-                  : 'border-slate-700 hover:border-slate-600 hover:bg-slate-800/50'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
                 }
               `}
             >
@@ -968,17 +975,17 @@ export function ProfilePage() {
               />
 
               <div className="flex flex-col items-center gap-3">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isDragging ? 'bg-indigo-500/20' : 'bg-slate-800'
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isDragging ? 'bg-indigo-100' : 'bg-slate-100'
                   }`}>
-                  <Upload className={`w-7 h-7 ${isDragging ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Upload className={`w-7 h-7 ${isDragging ? 'text-indigo-500' : 'text-slate-500'}`} />
                 </div>
 
                 <div>
-                  <p className="text-white font-medium mb-1">
+                  <p className="text-slate-900 font-medium mb-1">
                     {isDragging ? 'Drop your image here' : 'Drag & drop your image'}
                   </p>
-                  <p className="text-sm text-slate-400">
-                    or <span className="text-indigo-400 hover:text-indigo-300">browse</span> to choose
+                  <p className="text-sm text-slate-600">
+                    or <span className="text-indigo-600 hover:text-indigo-500">browse</span> to choose
                   </p>
                 </div>
 
@@ -992,10 +999,10 @@ export function ProfilePage() {
             {isAvatarLoading && uploadProgress > 0 && (
               <div className="mt-4">
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-slate-400">Uploading...</span>
-                  <span className="text-indigo-400">{uploadProgress}%</span>
+                  <span className="text-slate-600">Uploading...</span>
+                  <span className="text-indigo-600">{uploadProgress}%</span>
                 </div>
-                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-linear-to-r from-indigo-500 to-purple-500 transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}
@@ -1037,7 +1044,7 @@ export function ProfilePage() {
                   setIsEditingAvatar(false);
                   resetAvatarModal();
                 }}
-                className="px-4 py-3 bg-slate-800 rounded-xl text-slate-300 hover:bg-slate-700 transition-colors"
+                className="px-4 py-3 bg-slate-200 rounded-xl text-slate-700 hover:bg-slate-300 transition-colors"
               >
                 Cancel
               </button>

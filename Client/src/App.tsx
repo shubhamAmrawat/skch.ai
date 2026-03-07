@@ -2,8 +2,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthProvider';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
-import { LandingPage } from './pages/LandingPage';
+import { LandingRoute } from './components/LandingRoute';
 import { SketchApp } from './pages/SketchApp';
+import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { MySketchesPage } from './pages/MySketchesPage';
@@ -18,8 +19,18 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
+            {/* Landing - redirects to /home if logged in */}
+            <Route path="/" element={<LandingRoute />} />
+
+            {/* Dashboard - protected, for logged-in users */}
+            <Route
+              path="/home"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Auth routes - redirect to app if already logged in */}
             <Route
