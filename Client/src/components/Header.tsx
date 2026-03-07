@@ -195,8 +195,8 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
                 </button>
               </label>
             )}
-            <div className="flex flex-row items-center gap-2 border rounded-lg border-indigo-500 pr-1">
-              {generatedCode && (
+            {generatedCode && (
+              <div className="flex flex-row items-center gap-2 border rounded-lg border-indigo-500 pr-1">
                 <input
                   type="text"
                   value={sketchTitle}
@@ -204,11 +204,11 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
                   placeholder="Sketch name..."
                   className="w-28 sm:w-36 px-2.5 py-1.5 text-[15px] bg-white rounded-lg text-indigo-500 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all flex-shrink-0"
                 />
-              )}
-              <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
-                <Pencil className="w-4 h-4 text-white" />
+                <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                  <Pencil className="w-4 h-4 text-white" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
