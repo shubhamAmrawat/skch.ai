@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Check, Rocket, Layers, MousePointer2, PenTool, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { AuthBackground } from '../components/AuthBackground';
@@ -8,12 +8,11 @@ import { useAuth } from '../hooks/useAuth';
 
 export function SignupPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { register, loginWithGoogle } = useAuth();
 
   const getRedirectPath = () => {
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
-    return from || '/home';
+    // Always land on home/dashboard after signup - user can then navigate to sketching
+    return '/home';
   };
 
   const [showPassword, setShowPassword] = useState(false);
