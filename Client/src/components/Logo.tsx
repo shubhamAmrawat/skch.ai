@@ -8,7 +8,7 @@ interface LogoProps {
 }
 
 const sizes = {
-  sm: { icon: 28, text: 'text-base' },
+  sm: { icon: 50, text: 'text-[20px]' },
   md: { icon: 70, text: 'text-[25px]' },
   lg: { icon: 82, text: 'text-[30px]' },
 };
@@ -19,7 +19,7 @@ export function Logo({ size = 'md', iconSize, showText = true, className = '' }:
 
   return (
     <div
-      className={`flex items-center gap-2.5 ${className} rounded-xl px-4 py-1.5 bg-white  cursor-cell`}
+      className={`flex items-center gap-2.5 ${className} rounded-xl px-4 py-1.5  cursor-cell`}
     >
       <img src={iconImg} alt="" className="shrink-0" width={iconPx} height={iconPx} />
 

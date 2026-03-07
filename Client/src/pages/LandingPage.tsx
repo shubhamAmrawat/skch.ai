@@ -80,7 +80,7 @@ export function LandingPage() {
                 <div className="w-px h-12 bg-slate-200" />
                 <div>
                   <p className="text-3xl font-bold text-slate-900">AI</p>
-                  <p className="text-sm text-slate-500">Powered by GPT-4</p>
+                  <p className="text-sm text-slate-500">Powered by GPT-4,Claude 4.5</p>
                 </div>
                 <div className="w-px h-12 bg-slate-200" />
                 <div>
@@ -139,12 +139,12 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-6 border-t border-slate-200 bg-white/50">
+      <footer className="py-5 px-6 border-t border-slate-200 bg-white/50">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo size="sm" />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 ">
             
-            <p className="text-sm text-slate-500">
+            <p className=" text-slate-500">
               © 2024 sktch.ai. Built with ❤️
             </p>
             <a

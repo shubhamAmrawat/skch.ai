@@ -90,7 +90,6 @@ export function AuthBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
   const shapesRef = useRef<FloatingShape[]>([]);
-  const mouseRef = useRef({ x: -999, y: -999 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -105,11 +104,6 @@ export function AuthBackground() {
     };
     setCanvasSize();
     window.addEventListener('resize', setCanvasSize);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-    };
-    window.addEventListener('mousemove', handleMouseMove);
 
     // Create floating shapes - fewer for less distraction
     const shapeCount = Math.min(6, Math.floor((window.innerWidth * window.innerHeight) / 200000));
@@ -138,22 +132,8 @@ export function AuthBackground() {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const shapes = shapesRef.current;
-      const mouse = mouseRef.current;
 
       shapes.forEach((shape) => {
-        // Subtle mouse repulsion - gentle aesthetic reaction
-        if (mouse.x > 0 && mouse.y > 0) {
-          const dx = shape.x - mouse.x;
-          const dy = shape.y - mouse.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < 200 && distance > 0) {
-            const force = (200 - distance) / 200 * 0.015;
-            shape.speedX += (dx / distance) * force;
-            shape.speedY += (dy / distance) * force;
-          }
-        }
-
         // Update position - slow, calm movement
         shape.x += shape.speedX;
         shape.y += shape.speedY;
@@ -169,17 +149,6 @@ export function AuthBackground() {
         drawShape(ctx, shape);
       });
 
-      // Very subtle mouse glow
-      if (mouse.x > 0 && mouse.y > 0) {
-        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 150);
-        gradient.addColorStop(0, 'rgba(148, 163, 184, 0.03)');
-        gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 150, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -187,7 +156,6 @@ export function AuthBackground() {
 
     return () => {
       window.removeEventListener('resize', setCanvasSize);
-      window.removeEventListener('mousemove', handleMouseMove);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
