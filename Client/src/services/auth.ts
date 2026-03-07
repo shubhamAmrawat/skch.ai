@@ -20,6 +20,7 @@ export interface User {
   email: string;
   avatar: string | null;
   isEmailVerified?: boolean;
+  passwordChangedAt?: string;
   authProvider?: string;
   createdAt: string;
   lastLogin?: string;

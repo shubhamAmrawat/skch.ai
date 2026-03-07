@@ -458,6 +458,7 @@ export const getMe = async (req, res) => {
           email: user.email,
           avatar: user.avatar,
           isEmailVerified: user.isEmailVerified,
+          passwordChangedAt: user.passwordChangedAt,
           authProvider: user.authProvider,
           createdAt: user.createdAt,
           lastLogin: user.lastLogin,

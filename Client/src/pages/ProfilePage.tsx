@@ -512,14 +512,18 @@ export function ProfilePage() {
                   </p>
 
                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full text-indigo-700 text-sm">
+                    {/* <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full text-indigo-700 text-sm">
                       <Sparkles className="w-3.5 h-3.5" />
                       Pro Member
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm">
-                      <Shield className="w-3.5 h-3.5" />
-                      Verified
-                    </span>
+                    </span> */}
+                    {
+                      user.isEmailVerified && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm">
+                          <Shield className="w-3.5 h-3.5" />
+                          Verified
+                        </span>
+                      )
+                    }
                   </div>
                 </div>
 
@@ -750,7 +754,7 @@ export function ProfilePage() {
                   <div className="flex items-center justify-between py-3 border-b border-slate-200">
                     <div>
                       <p className="text-slate-900">Password</p>
-                      <p className="text-sm text-slate-500">Last changed: Never</p>
+                      <p className="text-sm text-slate-500">Last changed: {user.passwordChangedAt ? formatDate(user?.passwordChangedAt) : 'Never'}</p>
                     </div>
                     <button
                       onClick={() => setIsChangingPassword(true)}
