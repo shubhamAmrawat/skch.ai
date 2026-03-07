@@ -10,6 +10,8 @@ import {
   getMe,
   updateMe,
   changePassword,
+  forgotPassword,
+  resetPassword,
   getSessions,
 } from '../controllers/authController.js';
 import { googleAuth } from '../controllers/googleAuthController.js';
@@ -136,6 +138,43 @@ const changePasswordValidation = [
     }),
 ];
 
+const forgotPasswordValidation = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+];
+
+const resetPasswordValidation = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+
+  body('otp')
+    .trim()
+    .notEmpty()
+    .withMessage('Verification code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Code must be 6 digits')
+    .isNumeric()
+    .withMessage('Code must contain only numbers'),
+
+  body('newPassword')
+    .notEmpty()
+    .withMessage('New password is required')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+];
+
 // ===================
 // Public Routes
 // ===================
@@ -167,6 +206,20 @@ router.post('/refresh', refreshLimiter, refreshToken);
  * @access  Public
  */
 router.post('/google', authLimiter, googleAuth);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request OTP for password reset
+ * @access  Public
+ */
+router.post('/forgot-password', authLimiter, forgotPasswordValidation, forgotPassword);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password using OTP
+ * @access  Public
+ */
+router.post('/reset-password', authLimiter, resetPasswordValidation, resetPassword);
 
 // ===================
 // Protected Routes

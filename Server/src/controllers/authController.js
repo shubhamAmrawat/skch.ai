@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
+import { generateOtp, setOtp, verifyAndConsumeOtp } from '../services/otpStore.js';
+import { sendOtpEmail } from '../services/emailService.js';
 
 // ===================
 // Token Configuration
@@ -605,6 +607,148 @@ export const changePassword = async (req, res) => {
       success: false,
       error: 'Failed to change password',
       message: 'An error occurred while changing your password.',
+    });
+  }
+};
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request OTP for password reset
+ * @access  Public
+ */
+export const forgotPassword = async (req, res) => {
+  console.log('[Auth] forgot-password: Request received', { body: req.body });
+
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('[Auth] forgot-password: Validation failed', errors.array());
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array().map((e) => ({
+          field: e.path,
+          message: e.msg,
+        })),
+      });
+    }
+
+    const { email } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log('[Auth] forgot-password: Processing email', normalizedEmail);
+
+    // Find user - allow all active users (local and Google) to reset password
+    const user = await User.findOne({
+      email: normalizedEmail,
+      isActive: true,
+    });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      console.log('[Auth] forgot-password: No user found for email');
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, you will receive a password reset code.',
+      });
+    }
+
+    const otp = generateOtp();
+    setOtp(normalizedEmail, otp);
+    console.log('[Auth] forgot-password: OTP generated, attempting to send email...');
+
+    try {
+      await sendOtpEmail(normalizedEmail, otp);
+      console.log('[Auth] forgot-password: Email sent successfully to', normalizedEmail);
+    } catch (emailErr) {
+      console.error('[Auth] forgot-password: Failed to send OTP email:', emailErr);
+      console.error('[Auth] forgot-password: Email error details:', {
+        message: emailErr?.message,
+        code: emailErr?.code,
+        response: emailErr?.response,
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send email',
+        message: 'Could not send the reset code. Please try again later.',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'If an account exists with this email, you will receive a password reset code.',
+    });
+  } catch (error) {
+    console.error('[Auth] forgot-password: Unexpected error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Request failed',
+      message: 'An error occurred. Please try again.',
+    });
+  }
+};
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password using OTP
+ * @access  Public
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array().map((e) => ({
+          field: e.path,
+          message: e.msg,
+        })),
+      });
+    }
+
+    const { email, otp, newPassword } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!verifyAndConsumeOtp(normalizedEmail, otp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired code',
+        message: 'The reset code is invalid or has expired. Please request a new one.',
+      });
+    }
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+      isActive: true,
+    }).select('+password');
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request',
+        message: 'Unable to reset password. Please request a new code.',
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    // Invalidate all refresh tokens
+    user.refreshTokens = [];
+    await user.save({ validateBeforeSave: false });
+
+    console.log(`[Auth] Password reset successful: ${normalizedEmail}`);
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. You can now sign in with your new password.',
+    });
+  } catch (error) {
+    console.error('[Auth] Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Reset failed',
+      message: 'An error occurred while resetting your password. Please try again.',
     });
   }
 };

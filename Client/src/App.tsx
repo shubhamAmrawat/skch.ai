@@ -7,6 +7,7 @@ import { SketchApp } from './pages/SketchApp';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { MySketchesPage } from './pages/MySketchesPage';
 import { ProfilePage } from './pages/ProfilePage';
 
@@ -46,6 +47,14 @@ function App() {
               element={
                 <PublicOnlyRoute>
                   <SignupPage />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicOnlyRoute>
+                  <ForgotPasswordPage />
                 </PublicOnlyRoute>
               }
             />

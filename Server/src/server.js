@@ -180,6 +180,11 @@ app.listen(PORT, () => {
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
     console.warn('⚠️  WARNING: Cloudinary credentials not fully configured. Avatar upload will fail!');
   }
+
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('⚠️  WARNING: SMTP not configured. Forgot password (OTP emails) will fail!');
+    console.warn('   Add SMTP_HOST, SMTP_USER, SMTP_PASS to .env. For Gmail: smtp.gmail.com + App Password.');
+  }
 });
 
 export default app;

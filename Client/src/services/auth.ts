@@ -351,6 +351,85 @@ export async function updateProfile(data: { name?: string; avatar?: string }): P
 }
 
 /**
+ * Request OTP for forgot password
+ */
+export async function forgotPassword(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  const url = `${API_BASE_URL}/forgot-password`;
+  if (import.meta.env.DEV) {
+    console.log('[Auth] forgotPassword: Sending request to', url, { email });
+  }
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+      credentials: 'include',
+    });
+
+    const result = await response.json();
+
+    if (import.meta.env.DEV) {
+      console.log('[Auth] forgotPassword: Response', { status: response.status, ok: response.ok, result });
+    }
+
+    if (result.success) {
+      return { success: true, message: result.message };
+    }
+
+    return {
+      success: false,
+      error: result.error,
+      message: result.message || 'Failed to send reset code.',
+    };
+  } catch (error) {
+    console.error('[Auth] Forgot password error:', error);
+    return {
+      success: false,
+      error: 'Network error',
+      message: 'Unable to connect. Please try again.',
+    };
+  }
+}
+
+/**
+ * Reset password with OTP
+ */
+export async function resetPassword(
+  email: string,
+  otp: string,
+  newPassword: string
+): Promise<{ success: boolean; message?: string; error?: string; details?: Array<{ field: string; message: string }> }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp, newPassword }),
+      credentials: 'include',
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      return { success: true, message: result.message };
+    }
+
+    return {
+      success: false,
+      error: result.error,
+      message: result.message || 'Failed to reset password.',
+      details: result.details,
+    };
+  } catch (error) {
+    console.error('[Auth] Reset password error:', error);
+    return {
+      success: false,
+      error: 'Network error',
+      message: 'Unable to connect. Please try again.',
+    };
+  }
+}
+
+/**
  * Change password
  */
 export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthResponse> {

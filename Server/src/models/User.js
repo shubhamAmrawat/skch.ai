@@ -111,9 +111,7 @@ userSchema.pre('save', async function () {
   // Only hash password if it's modified (or new) and exists
   if (!this.isModified('password') || !this.password) return;
 
-  // Skip password hashing for Google OAuth users
-  if (this.authProvider === 'google') return;
-
+  // Hash password for all users (including Google users who set password via forgot-password)
   // Generate salt with cost factor of 12
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
@@ -132,10 +130,8 @@ userSchema.pre('save', async function () {
  * Compare provided password with stored hash
  */
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  // Google OAuth users don't have passwords
-  if (this.authProvider === 'google' || !this.password) {
-    return false;
-  }
+  // No password set (e.g. Google-only user who hasn't set one via forgot-password)
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
