@@ -353,7 +353,9 @@ export async function updateProfile(data: { name?: string; avatar?: string }): P
 /**
  * Request OTP for forgot password
  */
-export async function forgotPassword(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+export async function forgotPassword(
+  email: string
+): Promise<{ success: boolean; message?: string; error?: string; details?: Array<{ field: string; message: string }> }> {
   const url = `${API_BASE_URL}/forgot-password`;
   if (import.meta.env.DEV) {
     console.log('[Auth] forgotPassword: Sending request to', url, { email });
@@ -380,6 +382,7 @@ export async function forgotPassword(email: string): Promise<{ success: boolean;
       success: false,
       error: result.error,
       message: result.message || 'Failed to send reset code.',
+      details: result.details,
     };
   } catch (error) {
     console.error('[Auth] Forgot password error:', error);

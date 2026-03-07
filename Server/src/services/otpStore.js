@@ -26,10 +26,9 @@ export function setOtp(email, otp) {
 }
 
 /**
- * Verify OTP for email. Returns true if valid, false otherwise.
- * Consumes the OTP on success (one-time use).
+ * Verify OTP for email without consuming. Returns true if valid, false otherwise.
  */
-export function verifyAndConsumeOtp(email, otp) {
+export function verifyOtp(email, otp) {
   const normalizedEmail = email.toLowerCase().trim();
   const entry = otpStore.get(normalizedEmail);
 
@@ -38,8 +37,23 @@ export function verifyAndConsumeOtp(email, otp) {
     otpStore.delete(normalizedEmail);
     return false;
   }
-  if (entry.otp !== String(otp).trim()) return false;
+  return entry.otp === String(otp).trim();
+}
 
+/**
+ * Consume (delete) OTP for email. Call after successful password reset.
+ */
+export function consumeOtp(email) {
+  const normalizedEmail = email.toLowerCase().trim();
   otpStore.delete(normalizedEmail);
+}
+
+/**
+ * Verify OTP for email. Returns true if valid, false otherwise.
+ * Consumes the OTP on success (one-time use).
+ */
+export function verifyAndConsumeOtp(email, otp) {
+  if (!verifyOtp(email, otp)) return false;
+  consumeOtp(email);
   return true;
 }

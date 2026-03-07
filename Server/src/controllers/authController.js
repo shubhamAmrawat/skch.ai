@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
-import { generateOtp, setOtp, verifyAndConsumeOtp } from '../services/otpStore.js';
+import { generateOtp, setOtp, verifyOtp, consumeOtp } from '../services/otpStore.js';
 import { sendOtpEmail } from '../services/emailService.js';
 
 // ===================
@@ -709,7 +709,7 @@ export const resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    if (!verifyAndConsumeOtp(normalizedEmail, otp)) {
+    if (!verifyOtp(normalizedEmail, otp)) {
       return res.status(400).json({
         success: false,
         error: 'Invalid or expired code',
@@ -730,8 +730,22 @@ export const resetPassword = async (req, res) => {
       });
     }
 
+    // Reject if new password is same as existing (user has password set)
+    const isSameAsCurrent = await user.comparePassword(newPassword);
+    if (isSameAsCurrent) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password unchanged',
+        message: 'New password must be different from your current password.',
+        details: [{ field: 'newPassword', message: 'New password must be different from your current password.' }],
+      });
+    }
+
     user.password = newPassword;
     await user.save();
+
+    // Consume OTP only after successful reset (so user can retry with different password if rejected above)
+    consumeOtp(normalizedEmail);
 
     // Invalidate all refresh tokens
     user.refreshTokens = [];
