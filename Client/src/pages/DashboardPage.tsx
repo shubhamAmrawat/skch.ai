@@ -1,5 +1,5 @@
 import { useNavigate, Link } from 'react-router-dom';
-import { Sparkles, FolderOpen, Pencil, ArrowRight, Globe, Heart, Eye, Library } from 'lucide-react';
+import { FolderOpen, Pencil, ArrowRight, Globe, Heart, Eye, Library } from 'lucide-react';
 import { LandingHeader } from '../components/LandingHeader';
 import { ParticleBackground } from '../components/ParticleBackground';
 import { LoadingTransition } from '../components/LoadingTransition';
