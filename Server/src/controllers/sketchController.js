@@ -16,9 +16,17 @@ function normalizeConversationHistory(arr) {
     }));
 }
 
+function normalizeTags(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter((t) => t && typeof t === 'string')
+    .map((t) => String(t).trim().toLowerCase())
+    .filter((t) => t.length > 0);
+}
+
 export async function createSketch(req, res) {
   try {
-    const { title, code, tldrawSnapshot, thumbnail, conversationHistory } = req.body;
+    const { title, code, tldrawSnapshot, thumbnail, conversationHistory, visibility, tags } = req.body;
     const userId = req.userId;
 
     if (!code || typeof code !== 'string') {
@@ -29,6 +37,15 @@ export async function createSketch(req, res) {
       });
     }
 
+    const tagsArr = normalizeTags(tags);
+    if (tagsArr.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        message: 'At least one tag is required',
+      });
+    }
+
     const sketch = await Sketch.create({
       userId,
       title: title?.trim() || 'Untitled Sketch',
@@ -36,6 +53,8 @@ export async function createSketch(req, res) {
       tldrawSnapshot: tldrawSnapshot || null,
       thumbnail: thumbnail || null,
       conversationHistory: normalizeConversationHistory(conversationHistory),
+      visibility: visibility === 'public' ? 'public' : 'private',
+      tags: tagsArr,
     });
 
     return res.status(201).json({
@@ -153,6 +172,8 @@ export async function getSketch(req, res) {
           code: sketch.code,
           tldrawSnapshot: sketch.tldrawSnapshot ?? null,
           thumbnail: sketch.thumbnail ?? null,
+          visibility: sketch.visibility || 'private',
+          tags: sketch.tags || [],
           conversationHistory: (sketch.conversationHistory || []).map((h) => ({
             role: h.role,
             content: h.content,
@@ -180,7 +201,7 @@ export async function getSketch(req, res) {
 export async function updateSketch(req, res) {
   try {
     const { id } = req.params;
-    const { title, code, tldrawSnapshot, thumbnail, conversationHistory } = req.body;
+    const { title, code, tldrawSnapshot, thumbnail, conversationHistory, visibility, tags } = req.body;
     const userId = req.userId;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -197,6 +218,18 @@ export async function updateSketch(req, res) {
     if (tldrawSnapshot !== undefined) update.tldrawSnapshot = tldrawSnapshot;
     if (thumbnail !== undefined) update.thumbnail = thumbnail;
     if (conversationHistory !== undefined) update.conversationHistory = normalizeConversationHistory(conversationHistory);
+    if (visibility !== undefined) update.visibility = visibility === 'public' ? 'public' : 'private';
+    if (tags !== undefined) {
+      const tagsArr = normalizeTags(tags);
+      if (tagsArr.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation error',
+          message: 'At least one tag is required',
+        });
+      }
+      update.tags = tagsArr;
+    }
 
     if (Object.keys(update).length === 0) {
       return res.status(400).json({

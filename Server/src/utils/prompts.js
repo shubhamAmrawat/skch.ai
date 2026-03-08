@@ -1104,6 +1104,11 @@ List every visible component:
 - Export a single default React component
 - Follow the component patterns (ImageCard, Sidebar, Tabs, ProgressItem, etc.) whenever they match the design
 - Navigation must be local state only, NOT real routing.
+
+IMPORTANT: At the very end of your response, after the code, add exactly one line in this format:
+<!-- TAGS: tag1,tag2,tag3,tag4,tag5 -->
+Provide 3-5 lowercase tags describing the UI (e.g. dashboard, form, card, sidebar, navigation, landing, auth). Comma-separated, no spaces. These help users discover and organize their designs.
+
 Your output MUST match the original design (for real UIs) or exceed user expectations (for sketches).`
         },
         {
@@ -1140,8 +1145,10 @@ USER REQUEST: ${feedback}
 
 Apply this change and return the COMPLETE updated component code. Make sure any new elements are clearly visible (use appropriate colors, sizes, and no hidden classes). Return ONLY the raw code - no markdown formatting or explanations.
 
-IMPORTANT: At the very end of your response, after the code, add exactly one line in this format:
-<!-- ASSISTANT_REPLY: A brief, natural, human-friendly summary of what you changed (e.g. "I've added form validation to the email and password fields." or "I've made the header darker and added a search bar."). Write as if talking to the user - warm and specific to their request. -->`
+IMPORTANT: At the very end of your response, after the code, add exactly two lines in this format:
+<!-- ASSISTANT_REPLY: A brief, natural, human-friendly summary of what you changed (e.g. "I've added form validation to the email and password fields." or "I've made the header darker and added a search bar."). Write as if talking to the user - warm and specific to their request. -->
+<!-- TAGS: tag1,tag2,tag3,tag4,tag5 -->
+Provide 3-5 lowercase tags describing the updated UI (e.g. dashboard, form, card, sidebar). Comma-separated, no spaces.`
     }
   ];
 }
@@ -1173,7 +1180,11 @@ Current implementation:
 ${currentCode}
 \`\`\`
 
-Return the COMPLETE updated component code. Return ONLY raw JSX code - no markdown, no explanations.`,
+Return the COMPLETE updated component code. Return ONLY raw JSX code - no markdown, no explanations.
+
+IMPORTANT: At the very end of your response, after the code, add exactly one line:
+<!-- TAGS: tag1,tag2,tag3,tag4,tag5 -->
+Provide 3-5 lowercase tags describing the updated UI (e.g. dashboard, form, card, sidebar). Comma-separated, no spaces.`,
         },
         {
           type: "image_url",

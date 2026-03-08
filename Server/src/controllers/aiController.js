@@ -198,16 +198,17 @@ export async function generateUIStream(req, res) {
       return res.end();
     }
 
-    const { code: codeWithoutReply, assistantReply } = extractAssistantReply(fullText);
+    const { code: codeWithoutReply, assistantReply, tags } = extractAssistantReply(fullText);
     let cleanedCode = cleanCodeResponse(codeWithoutReply);
     cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
 
-    console.log(`[AI] Stream complete, ${cleanedCode.length} characters`);
+    console.log(`[AI] Stream complete, ${cleanedCode.length} characters, tags:`, tags);
 
     sendSSE(res, {
       type: 'done',
       code: cleanedCode,
       assistantReply: assistantReply || null,
+      tags: tags || [],
       usage,
     });
     res.end();
@@ -319,7 +320,7 @@ export async function generateUI(req, res) {
       throw new Error('No content received from AI');
     }
 
-    const { code: codeWithoutReply, assistantReply } = extractAssistantReply(generatedCode);
+    const { code: codeWithoutReply, assistantReply, tags } = extractAssistantReply(generatedCode);
     let cleanedCode = cleanCodeResponse(codeWithoutReply);
     cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
 
@@ -329,6 +330,7 @@ export async function generateUI(req, res) {
       success: true,
       code: cleanedCode,
       assistantReply: assistantReply || null,
+      tags: tags || [],
       usage,
     });
 
@@ -419,18 +421,34 @@ function replaceBrokenPlaceholderUrls(code) {
 }
 
 /**
- * Extract ASSISTANT_REPLY from AI response if present
+ * Extract ASSISTANT_REPLY and TAGS from AI response if present
  * @param {string} raw - Raw AI response
- * @returns {{ code: string, assistantReply: string | null }}
+ * @returns {{ code: string, assistantReply: string | null, tags: string[] }}
  */
 function extractAssistantReply(raw) {
-  const match = raw.match(/\s*<!--\s*ASSISTANT_REPLY:\s*([\s\S]*?)\s*-->\s*$/);
-  if (match) {
-    const summary = match[1].trim();
-    const code = raw.replace(/\s*<!--\s*ASSISTANT_REPLY:[\s\S]*?-->\s*$/, '').trim();
-    return { code, assistantReply: summary || null };
+  let code = raw;
+  let assistantReply = null;
+  let tags = [];
+
+  // Extract TAGS: tag1,tag2,tag3
+  const tagsMatch = raw.match(/\s*<!--\s*TAGS:\s*([\s\S]*?)\s*-->/);
+  if (tagsMatch) {
+    const tagStr = tagsMatch[1].trim();
+    tags = tagStr
+      .split(',')
+      .map((t) => t.trim().toLowerCase())
+      .filter((t) => t.length > 0);
+    code = code.replace(/\s*<!--\s*TAGS:[\s\S]*?-->\s*/, '').trim();
   }
-  return { code: raw, assistantReply: null };
+
+  // Extract ASSISTANT_REPLY
+  const replyMatch = code.match(/\s*<!--\s*ASSISTANT_REPLY:\s*([\s\S]*?)\s*-->\s*$/);
+  if (replyMatch) {
+    assistantReply = replyMatch[1].trim() || null;
+    code = code.replace(/\s*<!--\s*ASSISTANT_REPLY:[\s\S]*?-->\s*$/, '').trim();
+  }
+
+  return { code, assistantReply, tags };
 }
 
 /**

@@ -8,6 +8,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import sketchRoutes from './routes/sketchRoutes.js';
+import publicSketchRoutes from './routes/publicSketchRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -73,6 +74,7 @@ app.use((req, res, next) => {
 app.use('/api', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/sketches/public', publicSketchRoutes); // Must be before /api/sketches to avoid :id matching "public"
 app.use('/api/sketches', sketchRoutes);
 
 // ===================

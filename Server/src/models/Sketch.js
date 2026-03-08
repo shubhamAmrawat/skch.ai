@@ -41,6 +41,19 @@ const sketchSchema = new mongoose.Schema(
       ],
       default: [],
     },
+    tags: {
+      type: [String],
+      default: [],
+      trim: true,
+    },
+    likes: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    views: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -56,6 +69,10 @@ const sketchSchema = new mongoose.Schema(
 
 // Compound index for efficient user sketch listing
 sketchSchema.index({ userId: 1, createdAt: -1 });
+
+// Indexes for public sketches
+sketchSchema.index({ visibility: 1, createdAt: -1 });
+sketchSchema.index({ visibility: 1, tags: 1 });
 
 const Sketch = mongoose.model('Sketch', sketchSchema);
 
