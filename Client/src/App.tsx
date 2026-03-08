@@ -10,6 +10,7 @@ import { SignupPage } from './pages/SignupPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { MySketchesPage } from './pages/MySketchesPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ExplorePage } from './pages/ExplorePage';
 
 // Get Google Client ID from environment variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -76,6 +77,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/explore" element={<ExplorePage />} />
             <Route
               path="/profile"
               element={

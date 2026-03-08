@@ -34,7 +34,12 @@ interface GenerateRequest {
 
 export interface GenerateStreamCallbacks {
   onDelta: (chunk: string) => void;
-  onDone: (result: { code: string; assistantReply?: string | null; usage?: GenerateResponse['usage'] }) => void;
+  onDone: (result: {
+    code: string;
+    assistantReply?: string | null;
+    tags?: string[];
+    usage?: GenerateResponse['usage'];
+  }) => void;
   onError: (error: string) => void;
 }
 
@@ -97,6 +102,7 @@ export async function generateUIStreaming(
               callbacks.onDone({
                 code: data.code ?? '',
                 assistantReply: data.assistantReply ?? null,
+                tags: data.tags ?? [],
                 usage: data.usage,
               });
               return;

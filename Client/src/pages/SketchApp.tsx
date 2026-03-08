@@ -33,6 +33,9 @@ interface AppState {
   currentSketchId: string | null;
   currentSketchTitle: string | null;
   tldrawSnapshot: string | null;
+  visibility: 'public' | 'private';
+  tags: string[];
+  suggestedTags: string[];
   isSaving: boolean;
   saveMessage: string | null;
 }
@@ -56,7 +59,10 @@ export function SketchApp() {
     currentSketchId: null,
     currentSketchTitle: null,
     tldrawSnapshot: null,
-    isSaving: false,
+  visibility: 'public',
+  tags: [],
+  suggestedTags: [],
+  isSaving: false,
     saveMessage: null,
   });
 
@@ -90,6 +96,8 @@ export function SketchApp() {
           currentSketchId: sketch.id,
           currentSketchTitle: sketch.title,
           tldrawSnapshot: sketch.tldrawSnapshot ?? null,
+          visibility: (sketch as { visibility?: string }).visibility === 'public' ? 'public' : 'private',
+          tags: (sketch as { tags?: string[] }).tags ?? [],
           activeTab: 'preview',
           conversationHistory: loadedHistory, // Always use server data when loading
         }));
@@ -188,6 +196,7 @@ export function SketchApp() {
               activeTab: 'preview',
               error: null,
               conversationHistory: hadExistingCode ? prev.conversationHistory : [],
+              suggestedTags: result.tags ?? [],
             }));
             console.log('[App] Stream complete, tokens used:', result.usage?.totalTokens);
           },
@@ -273,6 +282,7 @@ export function SketchApp() {
               activeTab: 'preview',
               error: null,
               conversationHistory: [...prev.conversationHistory, assistantEntry],
+              suggestedTags: result.tags?.length ? result.tags : prev.suggestedTags,
             }));
             console.log('[App] Iteration stream complete, tokens:', result.usage?.totalTokens);
           },
@@ -308,6 +318,8 @@ export function SketchApp() {
       currentSketchId: null,
       currentSketchTitle: null,
       tldrawSnapshot: null,
+      tags: [],
+      suggestedTags: [],
       saveMessage: null,
     }));
   }, []);
@@ -315,6 +327,10 @@ export function SketchApp() {
   const handleSave = useCallback(
     async (title?: string) => {
       if (!state.generatedCode || !isAuthenticated) return;
+      if (state.tags.length === 0) {
+        setState((prev) => ({ ...prev, error: 'Add at least one tag before saving' }));
+        return;
+      }
 
       setState((prev) => ({ ...prev, isSaving: true, saveMessage: null }));
 
@@ -366,10 +382,14 @@ export function SketchApp() {
           tldrawSnapshot?: string | null;
           thumbnail?: string | null;
           conversationHistory: ConversationEntry[];
+          visibility?: 'public' | 'private';
+          tags?: string[];
         } = {
           code: state.generatedCode,
           title: saveTitle,
           conversationHistory: conversationHistoryRef.current,
+          visibility: state.visibility,
+          tags: state.tags,
         };
         if (tldrawSnapshot !== null) updatePayload.tldrawSnapshot = tldrawSnapshot;
         if (thumbnail !== null) updatePayload.thumbnail = thumbnail;
@@ -390,6 +410,8 @@ export function SketchApp() {
             tldrawSnapshot,
             thumbnail,
             conversationHistory: conversationHistoryRef.current,
+            visibility: state.visibility,
+            tags: state.tags,
           });
           const id = res.data?.sketch?.id;
           setState((prev) => ({
@@ -412,7 +434,7 @@ export function SketchApp() {
         }));
       }
     },
-    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, isAuthenticated]
+    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, state.visibility, state.tags, isAuthenticated]
   );
 
   const handleTabChange = useCallback((tab: TabType) => {
@@ -476,6 +498,11 @@ export function SketchApp() {
               activeTab: enabled && prev.activeTab === 'chat' ? 'preview' : prev.activeTab,
             }));
           },
+          visibility: state.visibility,
+          onVisibilityChange: (v) => setState((prev) => ({ ...prev, visibility: v })),
+          tags: state.tags,
+          onTagsChange: (t) => setState((prev) => ({ ...prev, tags: t })),
+          suggestedTags: state.suggestedTags,
         }}
       />
 

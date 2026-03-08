@@ -75,6 +75,8 @@ export interface Sketch {
   code: string;
   thumbnail?: string | null;
   tldrawSnapshot?: string | null;
+  visibility?: 'public' | 'private';
+  tags?: string[];
   conversationHistory?: ConversationEntry[];
   createdAt: string;
   updatedAt: string;
@@ -106,6 +108,55 @@ export interface GetSketchResponse {
   message?: string;
 }
 
+// ===================
+// Public Sketches Types
+// ===================
+
+export interface PublicSketchAuthor {
+  id: string;
+  name: string;
+  avatar?: string | null;
+}
+
+export interface PublicSketch {
+  id: string;
+  title: string;
+  thumbnail?: string | null;
+  tags: string[];
+  likesCount: number;
+  likedByMe: boolean;
+  views: number;
+  createdAt: string;
+  author: PublicSketchAuthor | null;
+}
+
+export interface PublicSketchDetail extends Sketch {
+  tags: string[];
+  likesCount: number;
+  likedByMe: boolean;
+  views: number;
+  author: PublicSketchAuthor | null;
+}
+
+export interface ListPublicSketchesResponse {
+  success: boolean;
+  data?: {
+    sketches: PublicSketch[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+  error?: string;
+  message?: string;
+}
+
+export interface GetPublicSketchResponse {
+  success: boolean;
+  data?: { sketch: PublicSketchDetail };
+  error?: string;
+  message?: string;
+}
+
 /**
  * Create a new sketch
  */
@@ -115,6 +166,8 @@ export async function createSketch(params: {
   tldrawSnapshot?: string | null;
   thumbnail?: string | null;
   conversationHistory?: Array<{ role: string; content: string; timestamp: Date }>;
+  visibility?: 'public' | 'private';
+  tags?: string[];
 }): Promise<CreateSketchResponse> {
   const response = await authApiFetch('/sketches', {
     method: 'POST',
@@ -128,6 +181,8 @@ export async function createSketch(params: {
         content: h.content,
         timestamp: h.timestamp instanceof Date ? h.timestamp.toISOString() : h.timestamp,
       })) ?? [],
+      visibility: params.visibility === 'public' ? 'public' : 'private',
+      tags: params.tags ?? [],
     }),
   });
 
@@ -190,6 +245,8 @@ export async function updateSketch(
     tldrawSnapshot?: string | null;
     thumbnail?: string | null;
     conversationHistory?: Array<{ role: string; content: string; timestamp: Date }>;
+    visibility?: 'public' | 'private';
+    tags?: string[];
   }
 ): Promise<CreateSketchResponse> {
   const body: Record<string, unknown> = { ...params };
@@ -209,6 +266,92 @@ export async function updateSketch(
 
   if (!response.ok) {
     throw new Error(data.message || data.error || 'Failed to update sketch');
+  }
+
+  return data;
+}
+
+/**
+ * List public sketches (paginated, searchable, sortable)
+ * Pass signal to abort the request (e.g. on effect cleanup to avoid duplicate requests in Strict Mode).
+ */
+export async function getPublicSketches(
+  params?: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    tags?: string;
+    sort?: 'recent' | 'popular' | 'trending';
+  },
+  signal?: AbortSignal
+): Promise<ListPublicSketchesResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set('page', String(params.page));
+  if (params?.limit) searchParams.set('limit', String(params.limit));
+  if (params?.q) searchParams.set('q', params.q);
+  if (params?.tags) searchParams.set('tags', params.tags);
+  if (params?.sort) searchParams.set('sort', params.sort);
+  const query = searchParams.toString();
+
+  const response = await authApiFetch(`/sketches/public${query ? `?${query}` : ''}`, { signal });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to load public sketches');
+  }
+
+  return data;
+}
+
+/**
+ * Get a single public sketch (increments view count)
+ */
+export async function getPublicSketch(id: string): Promise<GetPublicSketchResponse> {
+  const response = await authApiFetch(`/sketches/public/${id}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Sketch not found');
+    }
+    throw new Error(data.message || data.error || 'Failed to load sketch');
+  }
+
+  return data;
+}
+
+/**
+ * Toggle like on a public sketch
+ */
+export async function likePublicSketch(id: string): Promise<{
+  success: boolean;
+  data?: { likesCount: number; likedByMe: boolean };
+}> {
+  const response = await authApiFetch(`/sketches/public/${id}/like`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to update like');
+  }
+
+  return data;
+}
+
+/**
+ * Fork a public sketch (create a copy for the current user)
+ */
+export async function forkPublicSketch(id: string): Promise<CreateSketchResponse> {
+  const response = await authApiFetch(`/sketches/public/${id}/fork`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to fork sketch');
   }
 
   return data;

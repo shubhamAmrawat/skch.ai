@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FolderOpen, LogIn, Menu, X, LogOut, ChevronDown, Sparkles, User } from 'lucide-react';
+import { FolderOpen, LogIn, Menu, X, LogOut, ChevronDown, Sparkles, User, Globe } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../hooks/useAuth';
@@ -64,6 +64,13 @@ export function LandingHeader() {
                   <FolderOpen className="w-4 h-4 group-hover:text-indigo-500 transition-colors" />
                   <span>My Sketches</span>
                 </button>
+                <Link
+                  to="/explore"
+                  className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 transition-colors group cursor-pointer"
+                >
+                  <Globe className="w-4 h-4 group-hover:text-indigo-500 transition-colors" />
+                  <span>Explore</span>
+                </Link>
                 <div className="w-px h-6 bg-slate-200" />
                 <div className="relative">
                 <button
@@ -133,7 +140,16 @@ export function LandingHeader() {
                           <span className="text-sm">My Sketches</span>
                         </button>
 
-                     
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            navigate('/explore');
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+                        >
+                          <Globe className="w-4 h-4" />
+                          <span className="text-sm">Explore</span>
+                        </button>
 
                         <div className="my-1 h-px bg-slate-200" />
 
@@ -151,14 +167,23 @@ export function LandingHeader() {
               </div>
             </>
             ) : (
-              // Not authenticated: Only show login
-              <button
-                onClick={() => navigate('/login')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-indigo-500 to-purple-500 rounded-xl font-medium text-white hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Login</span>
-              </button>
+              // Not authenticated: Explore + Login
+              <>
+                <Link
+                  to="/explore"
+                  className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>Explore</span>
+                </Link>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-indigo-500 to-purple-500 rounded-xl font-medium text-white hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Login</span>
+                </button>
+              </>
             )}
           </nav>
 
@@ -226,7 +251,31 @@ export function LandingHeader() {
                   <FolderOpen className="w-5 h-5 text-indigo-500" />
                   <span>My Sketches</span>
                 </button>
+
+                <button
+                  onClick={() => {
+                    navigate('/explore');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
+                >
+                  <Globe className="w-5 h-5 text-indigo-500" />
+                  <span>Explore</span>
+                </button>
               </>
+            )}
+
+            {!isAuthenticated && (
+              <button
+                onClick={() => {
+                  navigate('/explore');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-3 w-full px-4 py-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
+              >
+                <Globe className="w-5 h-5 text-indigo-500" />
+                <span>Explore</span>
+              </button>
             )}
 
             <div className="h-px bg-slate-200" />

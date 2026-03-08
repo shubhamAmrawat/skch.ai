@@ -13,6 +13,9 @@ import {
   Download,
   Maximize2,
   Pencil,
+  Globe,
+  Lock,
+  Tag,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AvatarImage } from './AvatarImage';
@@ -46,6 +49,11 @@ export interface SketchHeaderControls {
   onFullscreen: () => void;
   refineOnlyMode: boolean;
   onRefineOnlyModeChange: (enabled: boolean) => void;
+  visibility?: 'public' | 'private';
+  onVisibilityChange?: (v: 'public' | 'private') => void;
+  tags?: string[];
+  onTagsChange?: (tags: string[]) => void;
+  suggestedTags?: string[];
 }
 
 interface HeaderProps {
@@ -57,6 +65,8 @@ interface HeaderProps {
 export function Header({ sketchControls, selectedModel, onModelChange }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const [isSaveOptionsOpen, setIsSaveOptionsOpen] = useState(false);
+  const [tagsInput, setTagsInput] = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -91,6 +101,11 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
       onFullscreen,
       refineOnlyMode,
       onRefineOnlyModeChange,
+      visibility = 'public',
+      onVisibilityChange,
+      tags = [],
+      onTagsChange,
+      suggestedTags = [],
     } = sketchControls;
 
     return (
@@ -222,19 +237,164 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
           )}
           {generatedCode && (
             <>
-              <button
-                onClick={onSave}
-                disabled={isSaving}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all"
-                title={isAuthenticated ? 'Save to My Sketches' : 'Log in to save'}
-              >
-                {isSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Save className="w-3.5 h-3.5" />
+              <div className="relative flex items-center rounded-lg border border-indigo-200 bg-indigo-600 shadow-sm">
+                <button
+                  onClick={() => {
+                    if (tags.length === 0) return;
+                    onSave();
+                    setIsSaveOptionsOpen(false);
+                  }}
+                  disabled={isSaving || tags.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-indigo-600 transition-colors"
+                  title={!isAuthenticated ? 'Log in to save' : tags.length === 0 ? 'Add at least one tag to save' : 'Save to My Sketches'}
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  <span>Save</span>
+                </button>
+                {onVisibilityChange && onTagsChange && (
+                  <>
+                    <div className="w-px h-6 bg-indigo-500/50" />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsSaveOptionsOpen((prev) => !prev);
+                      }}
+                      className="flex items-center justify-center px-2.5 py-2 text-white hover:bg-indigo-500 transition-colors"
+                      title="Save options"
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSaveOptionsOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isSaveOptionsOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-[99]"
+                          onClick={() => setIsSaveOptionsOpen(false)}
+                          aria-hidden="true"
+                        />
+                        <div className="absolute top-full mt-2 right-0 w-72 bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-300/50 z-[100]">
+                          <div className="p-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-sm font-semibold text-slate-900">Save options</h3>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsSaveOptionsOpen(false);
+                                  if (tags.length > 0) {
+                                    onSave();
+                                  }
+                                }}
+                                disabled={tags.length === 0 || isSaving}
+                                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Save now
+                              </button>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-slate-700 block mb-2">Visibility</label>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => onVisibilityChange('private')}
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                                    visibility === 'private'
+                                      ? 'bg-slate-100 text-slate-900 border-2 border-slate-300'
+                                      : 'text-slate-600 hover:bg-slate-50 border-2 border-transparent'
+                                  }`}
+                                >
+                                  <Lock className="w-4 h-4" />
+                                  Private
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onVisibilityChange('public')}
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                                    visibility === 'public'
+                                      ? 'bg-indigo-50 text-indigo-700 border-2 border-indigo-300'
+                                      : 'text-slate-600 hover:bg-slate-50 border-2 border-transparent'
+                                  }`}
+                                >
+                                  <Globe className="w-4 h-4" />
+                                  Public
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-slate-700 flex items-center gap-1 mb-2">
+                                <Tag className="w-3.5 h-3.5" />
+                                Tags <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={tags.join(', ')}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  const parsed = v.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+                                  onTagsChange([...new Set(parsed)]);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') e.preventDefault();
+                                }}
+                                placeholder="Type or click suggested tags to add"
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none placeholder:text-slate-400"
+                              />
+                              {suggestedTags.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs text-slate-500 mb-1.5">Suggested</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {suggestedTags
+                                      .filter((t) => !tags.includes(t))
+                                      .map((t) => (
+                                        <button
+                                          key={t}
+                                          type="button"
+                                          onClick={() => onTagsChange([...tags, t])}
+                                          className="px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
+                                        >
+                                          + {t}
+                                        </button>
+                                      ))}
+                                    {suggestedTags.filter((t) => !tags.includes(t)).length === 0 && suggestedTags.length > 0 && (
+                                      <span className="text-xs text-slate-400">All suggested tags added</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              {tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  {tags.map((t) => (
+                                    <span
+                                      key={t}
+                                      className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-medium"
+                                    >
+                                      {t}
+                                      <button
+                                        type="button"
+                                        onClick={() => onTagsChange(tags.filter((x) => x !== t))}
+                                        className="hover:text-red-500 hover:bg-slate-200 rounded p-0.5 transition-colors"
+                                        aria-label={`Remove ${t}`}
+                                      >
+                                        ×
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {tags.length === 0 && (
+                                <p className="text-xs text-amber-600 mt-1.5">At least one tag is required to save</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
                 )}
-                <span className="hidden sm:inline">Save</span>
-              </button>
+              </div>
               <button
                 onClick={onExport}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg transition-all"

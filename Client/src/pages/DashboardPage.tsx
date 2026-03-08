@@ -1,15 +1,52 @@
-import { useNavigate } from 'react-router-dom';
-import { Sparkles, FolderOpen, Pencil, ArrowRight } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Sparkles, FolderOpen, Pencil, ArrowRight, Globe, Heart, Eye } from 'lucide-react';
 import { LandingHeader } from '../components/LandingHeader';
 import { ParticleBackground } from '../components/ParticleBackground';
 import { LoadingTransition } from '../components/LoadingTransition';
 import { useAuth } from '../hooks/useAuth';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { getPublicSketches, type PublicSketch } from '../services/sketchApi';
+
+const REFETCH_AFTER_MS = 30_000; // Don't refetch more than once per 30s when tab becomes visible
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [publicSketches, setPublicSketches] = useState<PublicSketch[]>([]);
+  const [publicLoading, setPublicLoading] = useState(true);
+  const lastFetchedAt = useRef<number>(0);
+
+  // Single fetch on mount; abort on cleanup so Strict Mode only results in one request
+  useEffect(() => {
+    const controller = new AbortController();
+    setPublicLoading(true);
+    getPublicSketches({ limit: 6, sort: 'recent' }, controller.signal)
+      .then((res) => {
+        setPublicSketches(res.data?.sketches ?? []);
+        lastFetchedAt.current = Date.now();
+      })
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        setPublicSketches([]);
+      })
+      .finally(() => setPublicLoading(false));
+    return () => controller.abort();
+  }, []);
+
+  // Refetch only when user returns to the tab (visibility), and throttle to avoid repeated requests
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastFetchedAt.current < REFETCH_AFTER_MS) return;
+      lastFetchedAt.current = Date.now();
+      getPublicSketches({ limit: 6, sort: 'recent' })
+        .then((res) => setPublicSketches(res.data?.sketches ?? []))
+        .catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
   const handleStartSketching = () => {
     setIsNavigating(true);
@@ -66,6 +103,68 @@ export function DashboardPage() {
               </div>
               <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-violet-500 group-hover:translate-x-1 transition-all" />
             </button>
+          </div>
+
+          {/* Public Generations */}
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-indigo-500" />
+                Public Generations
+              </h2>
+              <Link
+                to="/explore"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+              >
+                View all →
+              </Link>
+            </div>
+            {publicLoading ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-40 rounded-2xl bg-slate-200 animate-pulse" />
+                ))}
+              </div>
+            ) : publicSketches.length === 0 ? (
+              <div className="p-8 bg-white border border-slate-200 rounded-2xl text-center text-slate-500">
+                No public generations yet. Be the first to share!
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {publicSketches.map((sketch) => (
+                  <button
+                    key={sketch.id}
+                    onClick={() => navigate(`/explore?id=${sketch.id}`)}
+                    className="group text-left bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all"
+                  >
+                    <div className="aspect-video bg-slate-100 flex items-center justify-center overflow-hidden">
+                      {sketch.thumbnail ? (
+                        <img
+                          src={sketch.thumbnail}
+                          alt={sketch.title}
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="text-slate-400 text-4xl font-bold">{sketch.title[0]}</div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-medium text-slate-900 truncate text-sm">{sketch.title}</h3>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                        <span className={`flex items-center gap-1 ${sketch.likedByMe ? 'text-red-500' : ''}`}>
+                          <Heart className={`w-3.5 h-3.5 ${sketch.likedByMe ? 'fill-current' : ''}`} />
+                          {sketch.likesCount}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" />
+                          {sketch.views}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick Tip */}
