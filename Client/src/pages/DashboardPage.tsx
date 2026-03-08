@@ -1,5 +1,5 @@
 import { useNavigate, Link } from 'react-router-dom';
-import { Sparkles, FolderOpen, Pencil, ArrowRight, Globe, Heart, Eye } from 'lucide-react';
+import { Sparkles, FolderOpen, Pencil, ArrowRight, Globe, Heart, Eye, Library } from 'lucide-react';
 import { LandingHeader } from '../components/LandingHeader';
 import { ParticleBackground } from '../components/ParticleBackground';
 import { LoadingTransition } from '../components/LoadingTransition';
@@ -167,8 +167,23 @@ export function DashboardPage() {
             )}
           </div>
 
+          {/* component library coming soon  */}
+         <div className="mt-12">
+            <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <Library className="w-5 h-5 text-indigo-500" />
+              Component Library
+            </h2>
+            <p className="text-slate-600 text-sm">
+              Browse and use pre-built components to speed up your development
+            </p>
+            {/*  coming soon banner */}
+            <div className="mt-4 p-4 bg-[#fff] border border-slate-100 rounded-xl text-center">
+              <p className="text-sm text-indigo-700">Coming soon</p>
+              <p className="text-sm text-indigo-700">We are working on it and it will be available soon</p>
+            </div>
+          </div>
           {/* Quick Tip */}
-          <div className="mt-12 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+          {/* <div className="mt-12 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
               <div>
@@ -178,7 +193,7 @@ export function DashboardPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </main>
     </div>
