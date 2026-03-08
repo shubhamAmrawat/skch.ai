@@ -66,7 +66,6 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [isSaveOptionsOpen, setIsSaveOptionsOpen] = useState(false);
-  const [tagsInput, setTagsInput] = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
