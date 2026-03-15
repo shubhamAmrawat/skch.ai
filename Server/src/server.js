@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import fileUpload from 'express-fileupload';
 import connectDB from './config/database.js';
 import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -57,6 +58,7 @@ app.use(cors({
 // Increase limit for base64 images
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(fileUpload({ limits: { fileSize: 10 * 1024 * 1024 } }));
 app.use(cookieParser());
 
 // ===================

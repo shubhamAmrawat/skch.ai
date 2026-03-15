@@ -6,7 +6,7 @@ import { WhiteboardContainer } from '../components/WhiteboardContainer';
 import type { ExportData } from '../components/WhiteboardContainer';
 import { CodePreviewPanel } from '../components/CodePreviewPanel';
 import { generateUIStreaming } from '../services/api';
-import { getSketch, createSketch, updateSketch } from '../services/sketchApi';
+import { getSketch, getSketchSnapshot, createSketch, updateSketch, uploadSketchAssets } from '../services/sketchApi';
 import { useAuth } from '../hooks/useAuth';
 import { generateFullPageHTML } from '../utils/previewHtml';
 import { exportToBlob } from '@excalidraw/excalidraw';
@@ -82,7 +82,7 @@ export function SketchApp() {
 
     let cancelled = false;
     getSketch(sketchIdParam)
-      .then((res) => {
+      .then(async (res) => {
         if (cancelled || !res.data?.sketch) return;
         const sketch = res.data!.sketch;
         const loadedHistory = (sketch.conversationHistory ?? []).map(
@@ -92,16 +92,31 @@ export function SketchApp() {
             timestamp: new Date(h.timestamp),
           })
         );
+
+        let snapshotData = sketch.tldrawSnapshot ?? null;
+
+        // If snapshot is an R2 URL, fetch via backend proxy (avoids CORS)
+        if (snapshotData && snapshotData.startsWith('http')) {
+          try {
+            snapshotData = await getSketchSnapshot(sketch.id);
+          } catch (err) {
+            console.error('[Load] Failed to fetch snapshot:', err);
+            snapshotData = null;
+          }
+        }
+
+        if (cancelled) return;
+
         setState((prev) => ({
           ...prev,
           generatedCode: sketch.code,
           currentSketchId: sketch.id,
           currentSketchTitle: sketch.title,
-          tldrawSnapshot: sketch.tldrawSnapshot ?? null,
+          tldrawSnapshot: snapshotData,
           visibility: (sketch as { visibility?: string }).visibility === 'public' ? 'public' : 'private',
           tags: (sketch as { tags?: string[] }).tags ?? [],
           activeTab: 'preview',
-          conversationHistory: loadedHistory, // Always use server data when loading
+          conversationHistory: loadedHistory,
         }));
       })
       .catch((err) => {
@@ -359,23 +374,16 @@ export function SketchApp() {
       setState((prev) => ({ ...prev, isSaving: true, saveMessage: null }));
 
       try {
-        let tldrawSnapshot: string | null = null;
-        let thumbnail: string | null = null;
+        let snapshotJson: string | null = null;
+        let thumbnailBlob: Blob | null = null;
 
         if (exportDataRef.current) {
           try {
             const data = await exportDataRef.current();
             if (data) {
-              tldrawSnapshot = data.snapshot;
-              console.log('[Save] snapshot length:', tldrawSnapshot.length);
-              if (data.thumbnail && data.thumbnail.length > 0) {
-                if (data.thumbnail.length > 500_000) {
-                  console.warn('[Save] thumbnail too large, discarding');
-                } else {
-                  thumbnail = data.thumbnail;
-                  console.log('[Save] thumbnail length:', thumbnail.length);
-                }
-              }
+              snapshotJson = data.snapshot;
+              thumbnailBlob = data.thumbnailBlob;
+              console.log('[Save] snapshot length:', snapshotJson.length, 'blob size:', thumbnailBlob?.size ?? 0);
             }
           } catch (exportErr) {
             console.error('[Save] getExportData failed:', exportErr);
@@ -386,52 +394,78 @@ export function SketchApp() {
 
         const saveTitle = title ?? state.currentSketchTitle ?? 'Untitled Sketch';
 
-        // Build update payload - only include thumbnail/tldrawSnapshot when we captured them
-        // (in refine-only mode canvas is hidden, so we skip to avoid overwriting existing values with null)
-        const updatePayload: {
-          code: string;
-          title: string;
-          tldrawSnapshot?: string | null;
-          thumbnail?: string | null;
-          conversationHistory: ConversationEntry[];
-          visibility?: 'public' | 'private';
-          tags?: string[];
-        } = {
-          code: state.generatedCode,
-          title: saveTitle,
-          conversationHistory: conversationHistoryRef.current,
-          visibility: state.visibility,
-          tags: state.tags,
-        };
-        if (tldrawSnapshot !== null) updatePayload.tldrawSnapshot = tldrawSnapshot;
-        if (thumbnail !== null) updatePayload.thumbnail = thumbnail;
-
         if (state.currentSketchId) {
+          // EXISTING SKETCH: upload assets to R2, then update sketch with URLs
+          let thumbnailUrl: string | undefined;
+          let snapshotUrl: string | undefined;
+
+          if (snapshotJson || thumbnailBlob) {
+            try {
+              const r2Result = await uploadSketchAssets(state.currentSketchId, thumbnailBlob, snapshotJson);
+              thumbnailUrl = r2Result.thumbnailUrl;
+              snapshotUrl = r2Result.snapshotUrl;
+              console.log('[Save] R2 upload complete:', { thumbnailUrl, snapshotUrl });
+            } catch (uploadErr) {
+              console.error('[Save] R2 upload failed, saving without assets:', uploadErr);
+            }
+          }
+
+          const updatePayload: {
+            code: string;
+            title: string;
+            tldrawSnapshot?: string | null;
+            thumbnail?: string | null;
+            conversationHistory: ConversationEntry[];
+            visibility?: 'public' | 'private';
+            tags?: string[];
+          } = {
+            code: state.generatedCode,
+            title: saveTitle,
+            conversationHistory: conversationHistoryRef.current,
+            visibility: state.visibility,
+            tags: state.tags,
+          };
+          if (snapshotUrl) updatePayload.tldrawSnapshot = snapshotUrl;
+          if (thumbnailUrl) updatePayload.thumbnail = thumbnailUrl;
+
           await updateSketch(state.currentSketchId, updatePayload);
           setState((prev) => ({
             ...prev,
             isSaving: false,
             currentSketchTitle: saveTitle,
-            tldrawSnapshot,
+            tldrawSnapshot: snapshotJson ?? prev.tldrawSnapshot,
             saveMessage: 'Sketch updated!',
           }));
         } else {
+          // NEW SKETCH: create first to get ID, then upload assets, then update with URLs
           const res = await createSketch({
             title: saveTitle,
             code: state.generatedCode,
-            tldrawSnapshot,
-            thumbnail,
             conversationHistory: conversationHistoryRef.current,
             visibility: state.visibility,
             tags: state.tags,
           });
           const id = res.data?.sketch?.id;
+
+          if (id && (snapshotJson || thumbnailBlob)) {
+            try {
+              const r2Result = await uploadSketchAssets(id, thumbnailBlob, snapshotJson);
+              console.log('[Save] R2 upload for new sketch:', r2Result);
+              await updateSketch(id, {
+                ...(r2Result.snapshotUrl && { tldrawSnapshot: r2Result.snapshotUrl }),
+                ...(r2Result.thumbnailUrl && { thumbnail: r2Result.thumbnailUrl }),
+              });
+            } catch (uploadErr) {
+              console.error('[Save] R2 upload failed for new sketch:', uploadErr);
+            }
+          }
+
           setState((prev) => ({
             ...prev,
             isSaving: false,
             currentSketchId: id ?? null,
             currentSketchTitle: saveTitle,
-            tldrawSnapshot,
+            tldrawSnapshot: snapshotJson ?? prev.tldrawSnapshot,
             saveMessage: 'Sketch saved!',
           }));
         }
@@ -568,9 +602,9 @@ export function SketchApp() {
               refineOnlyMode
             />
           </>
-        ) : showSplitView ? (
+        ) : (
           <PanelGroup orientation="horizontal" className="sketch-panel-group">
-            <Panel defaultSize={55} minSize={25} className="sketch-left-pane">
+            <Panel defaultSize={showSplitView ? 55 : 100} minSize={25} className="sketch-left-pane">
               <WhiteboardContainer
                 isGenerating={state.isGenerating}
                 onGenerate={handleGenerate}
@@ -585,33 +619,22 @@ export function SketchApp() {
               />
             </Panel>
 
-            <PanelResizeHandle className="sketch-drag-handle" />
+            {showSplitView && (
+              <PanelResizeHandle className="sketch-drag-handle" />
+            )}
 
-            <Panel defaultSize={45} minSize={25} className="sketch-right-pane">
-              <CodePreviewPanel
-                activeTab={state.activeTab}
-                generatedCode={state.generatedCode}
-                isGenerating={state.isGenerating}
-                conversationHistory={state.conversationHistory}
-                onIterate={handleIterate}
-              />
-            </Panel>
+            {showSplitView && (
+              <Panel defaultSize={45} minSize={25} className="sketch-right-pane">
+                <CodePreviewPanel
+                  activeTab={state.activeTab}
+                  generatedCode={state.generatedCode}
+                  isGenerating={state.isGenerating}
+                  conversationHistory={state.conversationHistory}
+                  onIterate={handleIterate}
+                />
+              </Panel>
+            )}
           </PanelGroup>
-        ) : (
-          <div className="sketch-canvas-only">
-            <WhiteboardContainer
-              isGenerating={state.isGenerating}
-              onGenerate={handleGenerate}
-              onClear={handleClear}
-              onEditorMount={(ed) => {
-                editorRef.current = ed;
-              }}
-              exportDataRef={exportDataRef}
-              initialSnapshot={state.tldrawSnapshot}
-              sketchId={sketchIdParam}
-              hasExistingCode={!!state.generatedCode}
-            />
-          </div>
         )}
       </main>
     </div>

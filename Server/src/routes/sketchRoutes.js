@@ -4,9 +4,11 @@ import {
   createSketch,
   listSketches,
   getSketch,
+  getSketchSnapshot,
   updateSketch,
   deleteSketch,
 } from '../controllers/sketchController.js';
+import { uploadSketchAssets } from '../controllers/assetController.js';
 
 const router = Router();
 
@@ -30,6 +32,13 @@ router.post('/', createSketch);
 router.get('/', listSketches);
 
 /**
+ * @route   GET /api/sketches/:sketchId/snapshot
+ * @desc    Get sketch snapshot (proxies R2 to avoid CORS)
+ * @access  Private
+ */
+router.get('/:sketchId/snapshot', getSketchSnapshot);
+
+/**
  * @route   GET /api/sketches/:id
  * @desc    Get a single sketch
  * @access  Private
@@ -43,6 +52,13 @@ router.get('/:id', getSketch);
  * @body    { title?: string, code?: string }
  */
 router.put('/:id', updateSketch);
+
+/**
+ * @route   POST /api/sketches/:sketchId/assets
+ * @desc    Upload sketch thumbnail/snapshot to R2
+ * @access  Private
+ */
+router.post('/:sketchId/assets', uploadSketchAssets);
 
 /**
  * @route   DELETE /api/sketches/:id

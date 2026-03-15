@@ -6,7 +6,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 
 export interface ExportData {
   snapshot: string;
-  thumbnail: string;
+  thumbnailBlob: Blob | null;
 }
 
 interface WhiteboardContainerProps {
@@ -32,6 +32,7 @@ export function WhiteboardContainer({
 }: WhiteboardContainerProps) {
   const [hasContent, setHasContent] = useState(false);
   const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const isExcalidrawReady = useRef(false);
   const accumulatedFilesRef = useRef<ReturnType<ExcalidrawImperativeAPI['getFiles']>>({});
   const snapshotLoadedRef = useRef(false);
   const initialSnapshotRef = useRef(initialSnapshot);
@@ -47,6 +48,7 @@ export function WhiteboardContainer({
 
   useEffect(() => {
     snapshotLoadedRef.current = false;
+    isExcalidrawReady.current = false;
   }, [sketchId]);
 
   useEffect(() => {
@@ -62,12 +64,17 @@ export function WhiteboardContainer({
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.elements)) {
         api.updateScene({
           elements: parsed.elements,
-          appState: parsed.appState ?? {},
+          appState: {
+            ...(parsed.appState ?? {}),
+            collaborators: new Map(),
+          },
         });
 
         if (parsed.files && typeof parsed.files === 'object' && Object.keys(parsed.files).length > 0) {
-          api.addFiles(Object.values(parsed.files) as Parameters<typeof api.addFiles>[0]);
+          const filesArray = Object.values(parsed.files) as Parameters<typeof api.addFiles>[0];
+          api.addFiles(filesArray);
           accumulatedFilesRef.current = { ...accumulatedFilesRef.current, ...parsed.files };
+          console.log('[Canvas] Restored files:', filesArray.length);
         }
 
         snapshotLoadedRef.current = true;
@@ -87,7 +94,9 @@ export function WhiteboardContainer({
   const handleExcalidrawAPI = useCallback(
     (api: ExcalidrawImperativeAPI) => {
       excalidrawAPIRef.current = api;
+      isExcalidrawReady.current = true;
       snapshotLoadedRef.current = false;
+      console.log('[Canvas] Excalidraw API ready');
       onEditorMount?.(api);
       tryLoadSnapshot(api, initialSnapshotRef.current);
     },
@@ -174,8 +183,8 @@ export function WhiteboardContainer({
 
   const getExportData = useCallback(async (): Promise<ExportData | null> => {
     const api = excalidrawAPIRef.current;
-    if (!api) {
-      console.error('[Canvas] getExportData: API not ready');
+    if (!api || !isExcalidrawReady.current) {
+      console.error('[Canvas] getExportData: Excalidraw not ready, aborting save');
       return null;
     }
 
@@ -183,41 +192,43 @@ export function WhiteboardContainer({
     const appState = api.getAppState();
     const files = { ...accumulatedFilesRef.current, ...api.getFiles() };
 
+    console.log('[Canvas] Save triggered:', {
+      elementCount: elements.length,
+      fileCount: Object.keys(files).length,
+      isReady: isExcalidrawReady.current,
+    });
+
     if (elements.length === 0) {
       console.warn('[Canvas] getExportData: no elements on canvas');
     }
 
     const snapshot = serializeAsJSON(elements, appState, files, 'local');
 
-    let thumbnail = '';
+    let thumbnailBlob: Blob | null = null;
     try {
       const blob = await exportToBlob({
         elements,
-        appState: { ...appState, exportBackground: true },
+        appState: {
+          ...appState,
+          exportBackground: true,
+          viewBackgroundColor: '#ffffff',
+        },
         files,
         mimeType: 'image/png',
-        quality: 0.8,
+        quality: 0.85,
       });
 
       if (!blob || blob.size === 0) {
         console.error('[Canvas] exportToBlob returned empty blob');
       } else {
-        thumbnail = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (typeof reader.result === 'string') resolve(reader.result);
-            else reject(new Error('FileReader result was not a string'));
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        console.log('[Canvas] thumbnail length:', thumbnail.length, 'files count:', Object.keys(files).length);
+        thumbnailBlob = blob;
+        console.log('[Canvas] thumbnail blob size:', blob.size, 'files count:', Object.keys(files).length);
       }
     } catch (err) {
       console.error('[Canvas] Failed to export thumbnail:', err);
     }
 
-    return { snapshot, thumbnail };
+    return { snapshot, thumbnailBlob };
   }, []);
 
   useEffect(() => {

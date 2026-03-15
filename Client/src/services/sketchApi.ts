@@ -235,6 +235,21 @@ export async function getSketch(id: string): Promise<GetSketchResponse> {
 }
 
 /**
+ * Get sketch snapshot (proxied through backend to avoid CORS with R2)
+ * Returns the snapshot as a JSON string for WhiteboardContainer.
+ */
+export async function getSketchSnapshot(sketchId: string): Promise<string> {
+  const response = await authApiFetch(`/sketches/${sketchId}/snapshot`);
+  const parsed = await response.json();
+
+  if (!response.ok) {
+    throw new Error((parsed as { error?: string }).error || 'Failed to load snapshot');
+  }
+
+  return typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
+}
+
+/**
  * Update a sketch
  */
 export async function updateSketch(
@@ -352,6 +367,50 @@ export async function forkPublicSketch(id: string): Promise<CreateSketchResponse
 
   if (!response.ok) {
     throw new Error(data.message || data.error || 'Failed to fork sketch');
+  }
+
+  return data;
+}
+
+/**
+ * Upload sketch assets (thumbnail PNG + snapshot JSON) to R2 via multipart/form-data.
+ * Returns the public URLs for each uploaded asset.
+ */
+export async function uploadSketchAssets(
+  sketchId: string,
+  thumbnailBlob: Blob | null,
+  snapshotJson: string | null
+): Promise<{ success: boolean; thumbnailUrl?: string; snapshotUrl?: string }> {
+  const formData = new FormData();
+
+  if (thumbnailBlob) {
+    formData.append('thumbnail', thumbnailBlob, 'thumbnail.png');
+  }
+
+  if (snapshotJson) {
+    formData.append(
+      'snapshot',
+      new Blob([snapshotJson], { type: 'application/json' }),
+      'snapshot.json'
+    );
+  }
+
+  const base = API_BASE_URL?.replace(/\/$/, '') || '';
+  const token = tokenStorage.getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${base}/sketches/${sketchId}/assets`, {
+    method: 'POST',
+    body: formData,
+    headers,
+    credentials: 'include',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to upload assets');
   }
 
   return data;

@@ -322,3 +322,36 @@ export async function deleteSketch(req, res) {
     });
   }
 }
+
+/**
+ * Get sketch snapshot (proxies R2 fetch to avoid CORS)
+ * GET /api/sketches/:sketchId/snapshot
+ */
+export async function getSketchSnapshot(req, res) {
+  try {
+    const { sketchId } = req.params;
+    const userId = req.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(sketchId)) {
+      return res.status(400).json({ error: 'Invalid sketch ID' });
+    }
+
+    const sketch = await Sketch.findOne({ _id: sketchId, userId });
+    if (!sketch) return res.status(404).json({ error: 'Sketch not found' });
+
+    const snapshotUrl = sketch.tldrawSnapshot;
+    if (!snapshotUrl) return res.status(404).json({ error: 'No snapshot found' });
+
+    if (snapshotUrl.startsWith('http')) {
+      const r2Response = await fetch(snapshotUrl);
+      if (!r2Response.ok) throw new Error(`R2 fetch failed: ${r2Response.status}`);
+      const json = await r2Response.json();
+      return res.json(json);
+    }
+
+    return res.json(JSON.parse(snapshotUrl));
+  } catch (err) {
+    console.error('[Sketch] getSnapshot failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
