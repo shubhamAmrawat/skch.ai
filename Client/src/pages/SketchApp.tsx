@@ -1,15 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { Header } from '../components/Header';
 import { WhiteboardContainer } from '../components/WhiteboardContainer';
+import type { ExportData } from '../components/WhiteboardContainer';
 import { CodePreviewPanel } from '../components/CodePreviewPanel';
-import { ResizableSplitPane } from '../components/ResizableSplitPane';
 import { generateUIStreaming } from '../services/api';
 import { getSketch, createSketch, updateSketch } from '../services/sketchApi';
 import { useAuth } from '../hooks/useAuth';
 import { generateFullPageHTML } from '../utils/previewHtml';
-import { getSnapshot } from 'tldraw';
-import type { Editor } from 'tldraw';
+import { exportToBlob } from '@excalidraw/excalidraw';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
 // Tab type
 type TabType = 'preview' | 'code' | 'chat';
@@ -44,7 +45,8 @@ export function SketchApp() {
   const [searchParams] = useSearchParams();
   const sketchIdParam = searchParams.get('sketchId');
   const { isAuthenticated } = useAuth();
-  const editorRef = useRef<Editor | null>(null);
+  const editorRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const exportDataRef = useRef<(() => Promise<ExportData | null>) | null>(null);
   const conversationHistoryRef = useRef<ConversationEntry[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -119,18 +121,18 @@ export function SketchApp() {
   // Keep ref in sync so handleSave always has latest conversationHistory (avoids stale closure on quick Save after refine)
   conversationHistoryRef.current = state.conversationHistory;
 
-  const handleGenerate = useCallback(async (editor: Editor | null) => {
-    // Set generating state, switch to Code tab to show streaming, clear errors
+  const handleGenerate = useCallback(async (editor: ExcalidrawImperativeAPI | null) => {
     setState((prev) => ({ ...prev, isGenerating: true, error: null, activeTab: 'code' }));
 
     try {
       let imageBase64: string | null = null;
 
-      // If we have an editor, export the canvas as PNG
       if (editor) {
-        const shapeIds = editor.getCurrentPageShapeIds();
+        const elements = editor.getSceneElements().filter((el) => !el.isDeleted);
+        const appState = editor.getAppState();
+        const files = editor.getFiles();
 
-        if (shapeIds.size === 0) {
+        if (elements.length === 0) {
           setState((prev) => ({
             ...prev,
             isGenerating: false,
@@ -139,18 +141,22 @@ export function SketchApp() {
           return;
         }
 
-        // Export the canvas as PNG blob
-        const blob = await editor.toImage([...shapeIds], {
-          format: 'png',
-          background: true,
-          padding: 20,
-          scale: 2, // Higher resolution for better AI understanding
+        const blob = await exportToBlob({
+          elements,
+          appState: {
+            ...appState,
+            exportBackground: true,
+            exportWithDarkMode: false,
+          },
+          files,
+          mimeType: 'image/png',
+          quality: 1,
         });
 
+        console.log('[App] Canvas exported, blob size:', blob?.size ?? 0, 'bytes');
+
         if (blob) {
-          // Convert blob to base64
-          imageBase64 = await blobToBase64(blob.blob);
-          console.log('[App] Canvas exported, size:', imageBase64.length, 'chars');
+          imageBase64 = await blobToBase64(blob);
         }
       }
 
@@ -189,10 +195,28 @@ export function SketchApp() {
             setState((prev) => ({ ...prev, generatedCode: accumulatedCode }));
           },
           onDone: (result) => {
+            const code = result.code || '';
+
+            if (
+              code.includes("I'm sorry") ||
+              code.includes("I can't assist") ||
+              code.includes("I cannot assist") ||
+              code.trim().length < 50
+            ) {
+              setState((prev) => ({
+                ...prev,
+                isGenerating: false,
+                generatedCode: '',
+                error:
+                  'AI could not process the image. Please try drawing directly on the canvas instead of pasting an image.',
+              }));
+              return;
+            }
+
             setState((prev) => ({
               ...prev,
               isGenerating: false,
-              generatedCode: result.code ?? '',
+              generatedCode: code,
               activeTab: 'preview',
               error: null,
               conversationHistory: hadExistingCode ? prev.conversationHistory : [],
@@ -337,39 +361,27 @@ export function SketchApp() {
       try {
         let tldrawSnapshot: string | null = null;
         let thumbnail: string | null = null;
-        const editor = editorRef.current;
 
-        if (editor) {
-          // Capture tldraw snapshot (includes all shapes: drawings, pasted images, etc.)
+        if (exportDataRef.current) {
           try {
-            const snapshot = getSnapshot(editor.store);
-            tldrawSnapshot = JSON.stringify(snapshot);
-          } catch (snapErr) {
-            console.warn('[Save] Failed to capture tldraw snapshot:', snapErr);
-          }
-
-          // Capture thumbnail from canvas
-          const shapeIds = editor.getCurrentPageShapeIds();
-          if (shapeIds.size > 0) {
-            try {
-              const result = await editor.toImage([...shapeIds], {
-                format: 'png',
-                background: true,
-                padding: 12,
-                scale: 0.5,
-              });
-              const imageBlob = result?.blob ?? (result as { blob?: Blob })?.blob;
-              if (imageBlob) {
-                thumbnail = await blobToBase64(imageBlob);
-                // Limit size for DB - compress if too large (>500KB base64)
-                if (thumbnail.length > 500_000) {
-                  thumbnail = null; // Skip oversized thumbnails to avoid DB issues
+            const data = await exportDataRef.current();
+            if (data) {
+              tldrawSnapshot = data.snapshot;
+              console.log('[Save] snapshot length:', tldrawSnapshot.length);
+              if (data.thumbnail && data.thumbnail.length > 0) {
+                if (data.thumbnail.length > 500_000) {
+                  console.warn('[Save] thumbnail too large, discarding');
+                } else {
+                  thumbnail = data.thumbnail;
+                  console.log('[Save] thumbnail length:', thumbnail.length);
                 }
               }
-            } catch (thumbErr) {
-              console.warn('[Save] Failed to capture thumbnail:', thumbErr);
             }
+          } catch (exportErr) {
+            console.error('[Save] getExportData failed:', exportErr);
           }
+        } else {
+          console.warn('[Save] exportDataRef not available — cannot capture snapshot/thumbnail');
         }
 
         const saveTitle = title ?? state.currentSketchTitle ?? 'Untitled Sketch';
@@ -467,6 +479,8 @@ export function SketchApp() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [state.generatedCode]);
 
+  const showSplitView = state.generatedCode.length > 0 || state.isGenerating;
+
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       {/* Header with integrated sketch controls */}
@@ -524,11 +538,10 @@ export function SketchApp() {
         </div>
       )}
 
-      {/* Main Content - Refine-only mode hides canvas, normal mode shows canvas | preview */}
-      <main className="flex-1 overflow-hidden">
+      {/* Main Content */}
+      <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {state.refineOnlyMode ? (
           <>
-            {/* Keep canvas mounted but off-screen so we can capture tldrawSnapshot/thumbnail on save */}
             <div
               className="fixed -left-[9999px] top-0 w-[800px] h-[600px] overflow-hidden -z-10"
               aria-hidden="true"
@@ -540,6 +553,7 @@ export function SketchApp() {
                 onEditorMount={(ed) => {
                   editorRef.current = ed;
                 }}
+                exportDataRef={exportDataRef}
                 initialSnapshot={state.tldrawSnapshot}
                 sketchId={sketchIdParam}
                 hasExistingCode={!!state.generatedCode}
@@ -554,9 +568,9 @@ export function SketchApp() {
               refineOnlyMode
             />
           </>
-        ) : (
-          <ResizableSplitPane
-            left={
+        ) : showSplitView ? (
+          <PanelGroup orientation="horizontal" className="sketch-panel-group">
+            <Panel defaultSize={55} minSize={25} className="sketch-left-pane">
               <WhiteboardContainer
                 isGenerating={state.isGenerating}
                 onGenerate={handleGenerate}
@@ -564,12 +578,16 @@ export function SketchApp() {
                 onEditorMount={(ed) => {
                   editorRef.current = ed;
                 }}
+                exportDataRef={exportDataRef}
                 initialSnapshot={state.tldrawSnapshot}
                 sketchId={sketchIdParam}
                 hasExistingCode={!!state.generatedCode}
               />
-            }
-            right={
+            </Panel>
+
+            <PanelResizeHandle className="sketch-drag-handle" />
+
+            <Panel defaultSize={45} minSize={25} className="sketch-right-pane">
               <CodePreviewPanel
                 activeTab={state.activeTab}
                 generatedCode={state.generatedCode}
@@ -577,11 +595,23 @@ export function SketchApp() {
                 conversationHistory={state.conversationHistory}
                 onIterate={handleIterate}
               />
-            }
-            defaultLeftWidth={50}
-            minLeftWidth={30}
-            maxLeftWidth={70}
-          />
+            </Panel>
+          </PanelGroup>
+        ) : (
+          <div className="sketch-canvas-only">
+            <WhiteboardContainer
+              isGenerating={state.isGenerating}
+              onGenerate={handleGenerate}
+              onClear={handleClear}
+              onEditorMount={(ed) => {
+                editorRef.current = ed;
+              }}
+              exportDataRef={exportDataRef}
+              initialSnapshot={state.tldrawSnapshot}
+              sketchId={sketchIdParam}
+              hasExistingCode={!!state.generatedCode}
+            />
+          </div>
         )}
       </main>
     </div>

@@ -1,18 +1,23 @@
 import { Sparkles, Trash2, Pencil, Image, MousePointer2 } from 'lucide-react';
-import { Tldraw, Editor, loadSnapshot } from 'tldraw';
-import 'tldraw/tldraw.css';
+import { Excalidraw, exportToBlob, serializeAsJSON } from '@excalidraw/excalidraw';
+import '@excalidraw/excalidraw/index.css';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useCallback, useState, useEffect, useRef } from 'react';
+
+export interface ExportData {
+  snapshot: string;
+  thumbnail: string;
+}
 
 interface WhiteboardContainerProps {
   isGenerating: boolean;
-  onGenerate: (editor: Editor | null) => void;
+  onGenerate: (api: ExcalidrawImperativeAPI | null) => void;
   onClear: () => void;
-  onEditorMount?: (editor: Editor | null) => void;
+  onEditorMount?: (api: ExcalidrawImperativeAPI | null) => void;
   initialSnapshot?: string | null;
-  /** When loading a saved sketch, pass sketchId so switching sketches remounts with correct snapshot */
   sketchId?: string | null;
-  /** When true, show "Regenerate" for iterative drawing support */
   hasExistingCode?: boolean;
+  exportDataRef?: React.MutableRefObject<(() => Promise<ExportData | null>) | null>;
 }
 
 export function WhiteboardContainer({
@@ -23,148 +28,294 @@ export function WhiteboardContainer({
   initialSnapshot,
   sketchId,
   hasExistingCode,
+  exportDataRef,
 }: WhiteboardContainerProps) {
   const [hasContent, setHasContent] = useState(false);
-  const editorRef = useRef<Editor | null>(null);
+  const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const accumulatedFilesRef = useRef<ReturnType<ExcalidrawImperativeAPI['getFiles']>>({});
   const snapshotLoadedRef = useRef(false);
   const initialSnapshotRef = useRef(initialSnapshot);
+  const onEditorMountRef = useRef(onEditorMount);
+
+  useEffect(() => {
+    onEditorMountRef.current = onEditorMount;
+  }, [onEditorMount]);
 
   useEffect(() => {
     initialSnapshotRef.current = initialSnapshot;
   }, [initialSnapshot]);
 
-  // Reset snapshot load state when switching sketches
   useEffect(() => {
     snapshotLoadedRef.current = false;
   }, [sketchId]);
 
-  const tryLoadSnapshot = useCallback((editor: Editor, snapshotStr: string | null | undefined) => {
+  useEffect(() => {
+    return () => {
+      onEditorMountRef.current?.(null);
+    };
+  }, []);
+
+  const tryLoadSnapshot = useCallback((api: ExcalidrawImperativeAPI, snapshotStr: string | null | undefined) => {
     if (!snapshotStr?.trim() || snapshotLoadedRef.current) return;
     try {
       const parsed = JSON.parse(snapshotStr);
-      if (parsed && typeof parsed === 'object' && (parsed.document || parsed.session)) {
-        loadSnapshot(editor.store, parsed);
+      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.elements)) {
+        api.updateScene({
+          elements: parsed.elements,
+          appState: parsed.appState ?? {},
+        });
+
+        if (parsed.files && typeof parsed.files === 'object' && Object.keys(parsed.files).length > 0) {
+          api.addFiles(Object.values(parsed.files) as Parameters<typeof api.addFiles>[0]);
+          accumulatedFilesRef.current = { ...accumulatedFilesRef.current, ...parsed.files };
+        }
+
         snapshotLoadedRef.current = true;
-        const shapeIds = editor.getCurrentPageShapeIds();
-        setHasContent(shapeIds.size > 0);
+        const active = (parsed.elements as Array<{ isDeleted?: boolean }>).filter(
+          (el) => !el.isDeleted
+        );
+        setHasContent(active.length > 0);
+        console.log('[Canvas] Snapshot restored, elements:', parsed.elements.length, 'files:', Object.keys(parsed.files ?? {}).length);
+      } else {
+        console.warn('[Canvas] Snapshot is not Excalidraw format, skipping restore');
       }
-    } catch (e) {
-      console.warn('[Whiteboard] Failed to load snapshot:', e);
+    } catch (err) {
+      console.warn('[Canvas] Failed to parse snapshot, starting blank:', err);
     }
   }, []);
 
-  const handleMount = useCallback(
-    (editorInstance: Editor) => {
-      editorRef.current = editorInstance;
+  const handleExcalidrawAPI = useCallback(
+    (api: ExcalidrawImperativeAPI) => {
+      excalidrawAPIRef.current = api;
       snapshotLoadedRef.current = false;
-      onEditorMount?.(editorInstance);
-
-      // Load snapshot if it arrived before editor (e.g. opening saved sketch)
-      tryLoadSnapshot(editorInstance, initialSnapshotRef.current);
-
-      const unsubscribe = editorInstance.store.listen(() => {
-        const shapeIds = editorInstance.getCurrentPageShapeIds();
-        setHasContent(shapeIds.size > 0);
-      });
-
-      return () => {
-        unsubscribe();
-        editorRef.current = null;
-        onEditorMount?.(null);
-      };
+      onEditorMount?.(api);
+      tryLoadSnapshot(api, initialSnapshotRef.current);
     },
     [onEditorMount, tryLoadSnapshot]
   );
 
-  // Load snapshot when it arrives after editor has mounted (e.g. fetch completes)
   useEffect(() => {
-    const editor = editorRef.current;
-    if (editor && initialSnapshot) {
-      tryLoadSnapshot(editor, initialSnapshot);
+    const api = excalidrawAPIRef.current;
+    if (api && initialSnapshot) {
+      tryLoadSnapshot(api, initialSnapshot);
     }
   }, [initialSnapshot, tryLoadSnapshot]);
 
-  const handleClear = useCallback(() => {
-    const editor = editorRef.current;
-    if (editor) {
-      const allShapeIds = editor.getCurrentPageShapeIds();
-      if (allShapeIds.size > 0) {
-        editor.deleteShapes([...allShapeIds]);
+  useEffect(() => {
+    const container = document.querySelector('.excalidraw-container');
+    if (!container) return;
+
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let panel: HTMLElement | null = null;
+
+    const makeDraggable = (el: HTMLElement) => {
+      if (el.dataset.draggable === 'true') return;
+      el.dataset.draggable = 'true';
+
+      el.style.position = 'fixed';
+      el.style.left = '12px';
+      el.style.top = '80px';
+      el.style.zIndex = '100';
+      el.style.borderRadius = '12px';
+      el.style.boxShadow = '0 4px 24px rgba(0,0,0,0.12)';
+      el.style.cursor = 'grab';
+      el.style.userSelect = 'none';
+      el.style.maxHeight = 'calc(100vh - 100px)';
+      el.style.overflowY = 'auto';
+
+      const onMouseDown = (e: MouseEvent) => {
+        if ((e.target as HTMLElement).closest('button, input, label, select')) return;
+        isDragging = true;
+        panel = el;
+        const rect = el.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left;
+        dragOffsetY = e.clientY - rect.top;
+        el.style.cursor = 'grabbing';
+        e.preventDefault();
+      };
+
+      el.addEventListener('mousedown', onMouseDown);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !panel) return;
+      panel.style.left = `${e.clientX - dragOffsetX}px`;
+      panel.style.top = `${e.clientY - dragOffsetY}px`;
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+      if (panel) panel.style.cursor = 'grab';
+      panel = null;
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    const observer = new MutationObserver(() => {
+      const propertiesPanel = container.querySelector(
+        '.layer-ui__wrapper__left-top, .App-menu__left'
+      ) as HTMLElement | null;
+      if (propertiesPanel) {
+        makeDraggable(propertiesPanel);
       }
+    });
+
+    observer.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const getExportData = useCallback(async (): Promise<ExportData | null> => {
+    const api = excalidrawAPIRef.current;
+    if (!api) {
+      console.error('[Canvas] getExportData: API not ready');
+      return null;
     }
+
+    const elements = api.getSceneElements().filter(el => !el.isDeleted);
+    const appState = api.getAppState();
+    const files = { ...accumulatedFilesRef.current, ...api.getFiles() };
+
+    if (elements.length === 0) {
+      console.warn('[Canvas] getExportData: no elements on canvas');
+    }
+
+    const snapshot = serializeAsJSON(elements, appState, files, 'local');
+
+    let thumbnail = '';
+    try {
+      const blob = await exportToBlob({
+        elements,
+        appState: { ...appState, exportBackground: true },
+        files,
+        mimeType: 'image/png',
+        quality: 0.8,
+      });
+
+      if (!blob || blob.size === 0) {
+        console.error('[Canvas] exportToBlob returned empty blob');
+      } else {
+        thumbnail = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') resolve(reader.result);
+            else reject(new Error('FileReader result was not a string'));
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        console.log('[Canvas] thumbnail length:', thumbnail.length, 'files count:', Object.keys(files).length);
+      }
+    } catch (err) {
+      console.error('[Canvas] Failed to export thumbnail:', err);
+    }
+
+    return { snapshot, thumbnail };
+  }, []);
+
+  useEffect(() => {
+    if (exportDataRef) {
+      exportDataRef.current = getExportData;
+    }
+    return () => {
+      if (exportDataRef) {
+        exportDataRef.current = null;
+      }
+    };
+  }, [getExportData, exportDataRef]);
+
+  const handleChange = useCallback((elements: readonly { isDeleted?: boolean }[], _appState: unknown, files: ReturnType<ExcalidrawImperativeAPI['getFiles']>) => {
+    if (files && Object.keys(files).length > 0) {
+      accumulatedFilesRef.current = { ...accumulatedFilesRef.current, ...files };
+    }
+    setHasContent(elements.filter((el) => !el.isDeleted).length > 0);
+  }, []);
+
+  const handleClear = useCallback(() => {
+    const api = excalidrawAPIRef.current;
+    if (api) {
+      api.updateScene({ elements: [] });
+    }
+    accumulatedFilesRef.current = {};
+    setHasContent(false);
     onClear();
   }, [onClear]);
 
-  const handleGenerate = useCallback(() => {
-    onGenerate(editorRef.current);
-  }, [onGenerate]);
-
   return (
-    <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
-      {/* Subtle gradient overlay */}
-      {/* <div className="absolute inset-0 bg-linear-to-br from-indigo-500/2 via-transparent to-purple-500/2 pointer-events-none z-10" /> */}
-
-      {/* Tldraw Canvas - snapshot loaded via loadSnapshot in useEffect when opening saved sketch */}
-      <div className="flex-1 relative overflow-hidden tldraw-container">
-        <Tldraw
+    <div className="whiteboard-wrapper">
+      {/* Excalidraw fills this container */}
+      <div className="excalidraw-container">
+        <Excalidraw
           key={sketchId ?? 'new'}
-          onMount={handleMount}
-          inferDarkMode={false}
-          licenseKey={import.meta.env.VITE_TLDRAW_LICENSE}
+          excalidrawAPI={handleExcalidrawAPI}
+          theme="light"
+          onChange={handleChange}
+          UIOptions={{
+            canvasActions: {
+              changeViewBackgroundColor: false,
+              clearCanvas: false,
+              export: false,
+              loadScene: false,
+              saveAsImage: false,
+              saveToActiveFile: false,
+              toggleTheme: false,
+            },
+          }}
+          renderTopRightUI={() => null}
         />
+      </div>
 
-        {/* Empty State Overlay */}
-        {!hasContent && !isGenerating && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-100">
-            <div className="text-center max-w-sm px-8">
-              {/* Animated Illustration */}
-              <div className="relative w-28 h-28 mx-auto mb-6">
-                {/* Pulsing rings */}
-                <div className="absolute inset-0 rounded-full border border-indigo-200 animate-ping [animation-duration:3s]" />
-                <div className="absolute inset-2 rounded-full border border-purple-200 animate-ping [animation-duration:3s] [animation-delay:0.5s]" />
+      {/* Empty State Overlay */}
+      {!hasContent && !isGenerating && (
+        <div className="canvas-empty-state">
+          <div className="text-center max-w-sm px-8">
+            <div className="relative w-28 h-28 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-full border border-indigo-200 animate-ping [animation-duration:3s]" />
+              <div className="absolute inset-2 rounded-full border border-purple-200 animate-ping [animation-duration:3s] [animation-delay:0.5s]" />
 
-                {/* Main container */}
-                <div className="absolute inset-4 rounded-2xl bg-white backdrop-blur-sm border border-slate-200 flex items-center justify-center shadow-lg">
-                  <Pencil className="w-8 h-8 text-indigo-500" />
-                </div>
-
-                {/* Floating elements */}
-                <div className="absolute -top-1 -right-1 w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center animate-float">
-                  <MousePointer2 className="w-4 h-4 text-purple-600" />
-                </div>
-                <div className="absolute -bottom-1 -left-1 w-9 h-9 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center animate-float-delayed">
-                  <Image className="w-4 h-4 text-cyan-600" />
-                </div>
+              <div className="absolute inset-4 rounded-2xl bg-white backdrop-blur-sm border border-slate-200 flex items-center justify-center shadow-lg">
+                <Pencil className="w-8 h-8 text-indigo-500" />
               </div>
 
-              {/* Content */}
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                Start Sketching Your UI
-              </h3>
-              <p className="text-sm text-slate-600 mb-5 leading-relaxed">
-                Draw wireframes or <span className="text-indigo-600 font-medium">paste an image</span> to generate code
-              </p>
+              <div className="absolute -top-1 -right-1 w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center animate-float">
+                <MousePointer2 className="w-4 h-4 text-purple-600" />
+              </div>
+              <div className="absolute -bottom-1 -left-1 w-9 h-9 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center animate-float-delayed">
+                <Image className="w-4 h-4 text-cyan-600" />
+              </div>
+            </div>
 
-              {/* Keyboard hints */}
-              <div className="flex items-center justify-center gap-3">
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200">
-                  <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs text-slate-700 font-mono">D</kbd>
-                  <span className="text-xs text-slate-600">Draw</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200">
-                  <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs text-slate-700 font-mono">Ctrl/Cmd+V</kbd>
-                  <span className="text-xs text-slate-600">Paste</span>
-                </div>
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">
+              Start Sketching Your UI
+            </h3>
+            <p className="text-sm text-slate-600 mb-5 leading-relaxed">
+              Draw wireframes or <span className="text-indigo-600 font-medium">paste an image</span> to generate code
+            </p>
+
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200">
+                <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs text-slate-700 font-mono">D</kbd>
+                <span className="text-xs text-slate-600">Draw</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200">
+                <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-xs text-slate-700 font-mono">Ctrl/Cmd+V</kbd>
+                <span className="text-xs text-slate-600">Paste</span>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Floating Action Bar - Top Right to avoid tldraw toolbar overlap */}
-      <div className="absolute top-3 right-3 z-1001">
+      {/* Floating Action Bar — always on top */}
+      <div className="canvas-floating-actions">
         <div className="flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-xl shadow-lg shadow-slate-200/50">
-          {/* Clear Button */}
           <button
             onClick={handleClear}
             disabled={isGenerating || !hasContent}
@@ -174,9 +325,8 @@ export function WhiteboardContainer({
             <Trash2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-red-500 transition-colors" />
           </button>
 
-          {/* Generate Button */}
           <button
-            onClick={handleGenerate}
+            onClick={() => onGenerate(excalidrawAPIRef.current)}
             disabled={isGenerating || !hasContent}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:cursor-not-allowed ${isGenerating
               ? 'bg-indigo-100 border border-indigo-200 text-indigo-600'

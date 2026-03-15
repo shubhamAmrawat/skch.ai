@@ -118,119 +118,171 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tldraw customizations - Clean light theme */
-.tldraw-container {
-  --color-background: #f8fafc;
-  --color-panel: #ffffff;
+/* ===== EXCALIDRAW CANVAS LAYOUT ===== */
+
+/* Wrapper: takes full space from parent flex layout */
+.whiteboard-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #f8fafc;
 }
 
-.tldraw-container .tl-background {
-  background-color: #f8fafc !important;
+/* Excalidraw fill container — min-height: 0 is critical for flex children */
+.excalidraw-container {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
-/* Make tldraw toolbar blend with our theme */
-.tldraw-container .tlui-layout {
-  --color-background: #ffffff;
-  --color-low: #f1f5f9;
-  --color-muted-1: #94a3b8;
-  --color-muted-2: #64748b;
-  --color-text: #1e293b;
-  --color-primary: #1e293b;
+/* Excalidraw internal root must also fill its container */
+.excalidraw-container .excalidraw,
+.excalidraw-container .excalidraw-container {
+  width: 100% !important;
+  height: 100% !important;
 }
 
-/* ===== HIDE UNNECESSARY TLDRAW UI ELEMENTS ===== */
+/* ===== HIDE UNWANTED EXCALIDRAW UI ===== */
 
-/* Hide the style panel (color picker on top right) */
-.tldraw-container .tlui-style-panel__wrapper,
-.tldraw-container .tlui-style-panel {
+/* Footer center (collaboration link), footer right (theme toggle), encrypted icon */
+.excalidraw .layer-ui__wrapper__footer-center,
+.excalidraw .layer-ui__wrapper__footer-right,
+.excalidraw .encrypted-icon,
+.excalidraw .excalidraw-link {
   display: none !important;
 }
 
-/* Hide the top left menu bar (keep it minimal) */
-.tldraw-container .tlui-menu-zone {
+/* Hide the top-bar (hamburger menu, live-collab, etc.) */
+.excalidraw .layer-ui__wrapper__top-right {
   display: none !important;
 }
 
-/* Hide the action zone (undo/redo at top) */
-.tldraw-container .tlui-action-zone {
+/* Hide the welcome screen / help dialog that shows a large icon */
+.excalidraw .welcome-screen-center,
+.excalidraw .WelcomeScreen,
+.excalidraw [class*="WelcomeScreen"],
+.excalidraw [class*="welcome-screen"] {
   display: none !important;
 }
 
-/* Hide the navigation/zoom controls and minimap */
-.tldraw-container .tlui-navigation-zone,
-.tldraw-container .tlui-minimap,
-.tldraw-container [class*="minimap"],
-.tldraw-container .tlui-debug-panel,
-.tldraw-container [class*="navigation"],
-.tldraw-container button[title*="Zoom"],
-.tldraw-container button[title*="minimap"] {
+/* Hide the help button / keyboard shortcuts trigger */
+.excalidraw .HelpButton,
+.excalidraw [class*="HelpButton"],
+.excalidraw button[aria-label="Help"] {
   display: none !important;
 }
 
-/* Hide any remaining bottom-left elements */
-.tldraw-container .tlui-layout__bottom .tlui-navigation-zone {
+/* ===== HIDE HAMBURGER / MAIN MENU ===== */
+
+.excalidraw .App-menu_top .buttonList button[aria-label="Menu"],
+.excalidraw button.hamburger-menu,
+.excalidraw .App-menu__left button[title="Menu"],
+.excalidraw [data-testid="main-menu-trigger"],
+.excalidraw .main-menu-trigger {
   display: none !important;
 }
 
-/* Hide the "Get a license" watermark */
-.tldraw-container [href*="tldraw.dev"],
-.tldraw-container button[title*="license"],
-.tldraw-container a[href*="tldraw"],
-.tldraw-container [class*="watermark"] {
+.excalidraw .main-menu,
+.excalidraw [data-testid="main-menu"] {
   display: none !important;
 }
 
-/* ===== POSITION THE TOOLS TOOLBAR ===== */
-
-/* Position the main tools toolbar */
-.tldraw-container .tlui-layout__bottom {
-  left: 16px !important;
-  right: auto !important;
-  transform: none !important;
-  bottom: 16px !important;
+.excalidraw .App-menu_top > .buttonList > button:first-child {
+  display: none !important;
 }
 
-.tldraw-container .tlui-layout__bottom__main {
-  justify-content: flex-start !important;
-}
+/* ===== PROPERTIES PANEL — styled, positioning handled by JS draggable ===== */
 
-/* Make the toolbar match our theme */
-.tldraw-container .tlui-toolbar {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+.excalidraw .App-menu__left,
+.excalidraw .layer-ui__wrapper__left-top {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
   border-radius: 12px !important;
-  padding: 4px !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Style the toolbar buttons */
-.tldraw-container .tlui-toolbar__tools button {
-  border-radius: 8px !important;
-  transition: all 0.2s ease !important;
-}
-
-.tldraw-container .tlui-toolbar__tools button:hover {
-  background: rgba(241, 245, 249, 0.8) !important;
-}
-
-.tldraw-container .tlui-toolbar__tools button[data-state="selected"],
-.tldraw-container .tlui-toolbar__tools button[aria-pressed="true"] {
-  background: rgba(226, 232, 240, 0.8) !important;
-}
-
-/* Hide the extras/overflow menu */
-.tldraw-container .tlui-toolbar__extras {
+.excalidraw .Stats,
+.excalidraw .properties-content,
+.excalidraw .Island.scroll-back-to-content {
   display: none !important;
 }
 
-/* ===== CLEANER CANVAS ===== */
+/* ===== STYLE THE DRAWING TOOLBAR ===== */
 
-/* Add subtle grid pattern to canvas */
-.tldraw-container .tl-background {
-  background-image: 
-    radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.15) 1px, transparent 0) !important;
-  background-size: 24px 24px !important;
+.excalidraw .App-toolbar {
+  background: rgba(255, 255, 255, 0.9) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ===== FLOATING BUTTONS & OVERLAY ===== */
+
+/* Floating Clear + Generate buttons — always above canvas */
+.canvas-floating-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  pointer-events: all;
+}
+
+/* Empty state centered overlay */
+.canvas-empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ===== SKETCH LAYOUT (canvas-first → split on generate) ===== */
+
+.sketch-panel-group {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+.sketch-canvas-only {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sketch-left-pane {
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.sketch-drag-handle {
+  width: 5px;
+  flex-shrink: 0;
+  background: #e5e7eb;
+  cursor: col-resize;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.sketch-drag-handle:hover,
+.sketch-drag-handle[data-resize-handle-active] {
+  background: #6366f1;
+}
+
+.sketch-right-pane {
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* ===== AUTH PAGE ANIMATIONS ===== */
