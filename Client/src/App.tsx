@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthProvider';
+import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 import { LandingRoute } from './components/LandingRoute';
 import { SketchApp } from './pages/SketchApp';
@@ -19,6 +20,7 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <BrowserRouter>
+        <ToastProvider>
         <AuthProvider>
           <Routes>
             {/* Landing - redirects to /home if logged in */}
@@ -89,6 +91,7 @@ function App() {
           </Routes>
           <Analytics />
         </AuthProvider>
+        </ToastProvider>
       </BrowserRouter>
     </GoogleOAuthProvider>
   );

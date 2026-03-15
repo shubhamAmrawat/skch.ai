@@ -8,6 +8,7 @@ import { CodePreviewPanel } from '../components/CodePreviewPanel';
 import { generateUIStreaming } from '../services/api';
 import { getSketch, getSketchSnapshot, createSketch, updateSketch, uploadSketchAssets } from '../services/sketchApi';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../context/ToastContext';
 import { generateFullPageHTML } from '../utils/previewHtml';
 import { exportToBlob } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
@@ -29,7 +30,6 @@ interface AppState {
   activeTab: TabType;
   selectedModel: string;
   conversationHistory: ConversationEntry[];
-  error: string | null;
   currentSketchId: string | null;
   currentSketchTitle: string | null;
   tldrawSnapshot: string | null;
@@ -37,13 +37,13 @@ interface AppState {
   tags: string[];
   suggestedTags: string[];
   isSaving: boolean;
-  saveMessage: string | null;
 }
 
 export function SketchApp() {
   const [searchParams] = useSearchParams();
   const sketchIdParam = searchParams.get('sketchId');
   const { isAuthenticated } = useAuth();
+  const { addToast } = useToast();
   const editorRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const exportDataRef = useRef<(() => Promise<ExportData | null>) | null>(null);
   const conversationHistoryRef = useRef<ConversationEntry[]>([]);
@@ -58,7 +58,6 @@ export function SketchApp() {
     activeTab: 'canvas',
     selectedModel: 'gpt-4o',
     conversationHistory: [],
-    error: null,
     currentSketchId: null,
     currentSketchTitle: null,
     tldrawSnapshot: null,
@@ -66,7 +65,6 @@ export function SketchApp() {
   tags: [],
   suggestedTags: [],
   isSaving: false,
-    saveMessage: null,
   });
 
   // Load sketch from URL param (only when sketchId changes - avoid overwriting in-session refinements)
@@ -122,36 +120,38 @@ export function SketchApp() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setState((prev) => ({
-            ...prev,
-            error: err instanceof Error ? err.message : 'Failed to load sketch',
-          }));
+          addToast('error', err instanceof Error ? err.message : 'Failed to load sketch');
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [sketchIdParam, isAuthenticated]);
+  }, [sketchIdParam, isAuthenticated, addToast]);
 
   // Keep ref in sync so handleSave always has latest conversationHistory (avoids stale closure on quick Save after refine)
   conversationHistoryRef.current = state.conversationHistory;
 
-  // Panel collapse: Canvas = canvas full width; Preview/Code/Refine = right panel full width
   const showSplitView = state.generatedCode.length > 0 || state.isGenerating;
+
+  // Panel collapse: Canvas = canvas full width; Preview/Code/Refine = right panel full width
+  // Defer to next tick so panels are fully registered (avoids "Panel constraints not found")
   useEffect(() => {
     if (!showSplitView) return;
-    if (state.activeTab === 'canvas') {
-      leftPanelRef.current?.expand();
-      rightPanelRef.current?.collapse();
-    } else {
-      leftPanelRef.current?.collapse();
-      rightPanelRef.current?.expand();
-    }
+    const id = setTimeout(() => {
+      if (state.activeTab === 'canvas') {
+        leftPanelRef.current?.expand();
+        rightPanelRef.current?.collapse();
+      } else {
+        leftPanelRef.current?.collapse();
+        rightPanelRef.current?.expand();
+      }
+    }, 0);
+    return () => clearTimeout(id);
   }, [state.activeTab, showSplitView]);
 
   const handleGenerate = useCallback(async (editor: ExcalidrawImperativeAPI | null) => {
-    setState((prev) => ({ ...prev, isGenerating: true, error: null, activeTab: 'chat' }));
+    setState((prev) => ({ ...prev, isGenerating: true, activeTab: 'chat' }));
 
     try {
       let imageBase64: string | null = null;
@@ -162,11 +162,8 @@ export function SketchApp() {
         const files = editor.getFiles();
 
         if (elements.length === 0) {
-          setState((prev) => ({
-            ...prev,
-            isGenerating: false,
-            error: 'Please draw something on the canvas first!',
-          }));
+          setState((prev) => ({ ...prev, isGenerating: false }));
+          addToast('warning', 'Please draw something on the canvas first!');
           return;
         }
 
@@ -190,11 +187,8 @@ export function SketchApp() {
       }
 
       if (!imageBase64) {
-        setState((prev) => ({
-          ...prev,
-          isGenerating: false,
-          error: 'Failed to capture canvas. Please try again.',
-        }));
+        setState((prev) => ({ ...prev, isGenerating: false }));
+        addToast('error', 'Failed to capture canvas. Please try again.');
         return;
       }
 
@@ -236,9 +230,11 @@ export function SketchApp() {
                 ...prev,
                 isGenerating: false,
                 generatedCode: '',
-                error:
-                  'AI could not process the image. Please try drawing directly on the canvas instead of pasting an image.',
               }));
+              addToast(
+                'error',
+                "AI could not process the image. Please try drawing directly on the canvas instead of pasting an image."
+              );
               return;
             }
 
@@ -247,31 +243,24 @@ export function SketchApp() {
               isGenerating: false,
               generatedCode: code,
               activeTab: 'chat',
-              error: null,
               conversationHistory: hadExistingCode ? prev.conversationHistory : [],
               suggestedTags: result.tags ?? [],
             }));
             console.log('[App] Stream complete, tokens used:', result.usage?.totalTokens);
           },
           onError: (errorMsg) => {
-            setState((prev) => ({
-              ...prev,
-              isGenerating: false,
-              error: errorMsg,
-            }));
+            setState((prev) => ({ ...prev, isGenerating: false }));
+            addToast('error', errorMsg);
           },
         },
         abortControllerRef.current.signal
       );
     } catch (error) {
       console.error('[App] Generation error:', error);
-      setState((prev) => ({
-        ...prev,
-        isGenerating: false,
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-      }));
+      setState((prev) => ({ ...prev, isGenerating: false }));
+      addToast('error', error instanceof Error ? error.message : 'An unexpected error occurred');
     }
-  }, [state.generatedCode, state.selectedModel]);
+  }, [state.generatedCode, state.selectedModel, addToast]);
 
   const handleIterate = useCallback(async (feedback: string) => {
     console.log('[App] handleIterate called with feedback:', feedback);
@@ -291,7 +280,6 @@ export function SketchApp() {
     setState((prev) => ({
       ...prev,
       isGenerating: true,
-      error: null,
       activeTab: 'chat',
       conversationHistory: [...prev.conversationHistory, userEntry],
     }));
@@ -333,7 +321,6 @@ export function SketchApp() {
               isGenerating: false,
               generatedCode: result.code ?? '',
               activeTab: 'chat',
-              error: null,
               conversationHistory: [...prev.conversationHistory, assistantEntry],
               suggestedTags: result.tags?.length ? result.tags : prev.suggestedTags,
             }));
@@ -355,11 +342,11 @@ export function SketchApp() {
       setState((prev) => ({
         ...prev,
         isGenerating: false,
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
         conversationHistory: prev.conversationHistory.slice(0, -1),
       }));
+      addToast('error', error instanceof Error ? error.message : 'An unexpected error occurred');
     }
-  }, [state.generatedCode, state.conversationHistory, state.selectedModel]);
+  }, [state.generatedCode, state.conversationHistory, state.selectedModel, addToast]);
 
   const handleClear = useCallback(() => {
     setState((prev) => ({
@@ -367,13 +354,11 @@ export function SketchApp() {
       generatedCode: '',
       activeTab: 'canvas',
       conversationHistory: [],
-      error: null,
       currentSketchId: null,
       currentSketchTitle: null,
       tldrawSnapshot: null,
       tags: [],
       suggestedTags: [],
-      saveMessage: null,
     }));
   }, []);
 
@@ -381,11 +366,11 @@ export function SketchApp() {
     async (title?: string) => {
       if (!state.generatedCode || !isAuthenticated) return;
       if (state.tags.length === 0) {
-        setState((prev) => ({ ...prev, error: 'Add at least one tag before saving' }));
+        addToast('warning', 'Add at least one tag before saving');
         return;
       }
 
-      setState((prev) => ({ ...prev, isSaving: true, saveMessage: null }));
+      setState((prev) => ({ ...prev, isSaving: true }));
 
       try {
         let snapshotJson: string | null = null;
@@ -448,8 +433,8 @@ export function SketchApp() {
             isSaving: false,
             currentSketchTitle: saveTitle,
             tldrawSnapshot: snapshotJson ?? prev.tldrawSnapshot,
-            saveMessage: 'Sketch updated!',
           }));
+          addToast('success', 'Sketch updated!');
         } else {
           // NEW SKETCH: create first to get ID, then upload assets, then update with URLs
           const res = await createSketch({
@@ -480,21 +465,15 @@ export function SketchApp() {
             currentSketchId: id ?? null,
             currentSketchTitle: saveTitle,
             tldrawSnapshot: snapshotJson ?? prev.tldrawSnapshot,
-            saveMessage: 'Sketch saved!',
           }));
+          addToast('success', 'Sketch saved!');
         }
-        setTimeout(() => {
-          setState((prev) => (prev.saveMessage ? { ...prev, saveMessage: null } : prev));
-        }, 3000);
       } catch (err) {
-        setState((prev) => ({
-          ...prev,
-          isSaving: false,
-          error: err instanceof Error ? err.message : 'Failed to save sketch',
-        }));
+        setState((prev) => ({ ...prev, isSaving: false }));
+        addToast('error', err instanceof Error ? err.message : 'Failed to save sketch');
       }
     },
-    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, state.visibility, state.tags, isAuthenticated]
+    [state.generatedCode, state.currentSketchId, state.currentSketchTitle, state.visibility, state.tags, isAuthenticated, addToast]
   );
 
   const handleTabChange = useCallback((tab: TabType) => {
@@ -558,25 +537,7 @@ export function SketchApp() {
         }}
       />
 
-      {/* Error Banner */}
-      {state.error && (
-        <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-2">
-          <p className="text-red-400 text-sm text-center">
-            ⚠️ {state.error}
-          </p>
-        </div>
-      )}
-
-      {/* Save success message */}
-      {state.saveMessage && (
-        <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-2">
-          <p className="text-green-600 text-sm text-center">
-            ✓ {state.saveMessage}
-          </p>
-        </div>
-      )}
-
-      {/* Main Content - single layout: canvas collapses when Refine tab is active (stays mounted to preserve state) */}
+      {/* Main Content - both panels always mounted to avoid react-resizable-panels "Panel constraints not found" */}
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <PanelGroup orientation="horizontal" className="sketch-panel-group">
           <Panel
@@ -607,20 +568,18 @@ export function SketchApp() {
             />
           </Panel>
 
-          {showSplitView && (
-            <PanelResizeHandle className="sketch-drag-handle" />
-          )}
+          <PanelResizeHandle className="sketch-drag-handle" />
 
-          {showSplitView && (
-            <Panel
-              id="code-preview-panel"
-              panelRef={rightPanelRef}
-              defaultSize={45}
-              minSize={0}
-              collapsible
-              collapsedSize={0}
-              className="sketch-right-pane"
-            >
+          <Panel
+            id="code-preview-panel"
+            panelRef={rightPanelRef}
+            defaultSize={showSplitView ? 45 : 0}
+            minSize={0}
+            collapsible
+            collapsedSize={0}
+            className="sketch-right-pane"
+          >
+            {showSplitView ? (
               <CodePreviewPanel
                 activeTab={state.activeTab}
                 generatedCode={state.generatedCode}
@@ -628,8 +587,10 @@ export function SketchApp() {
                 conversationHistory={state.conversationHistory}
                 onIterate={handleIterate}
               />
-            </Panel>
-          )}
+            ) : (
+              <div className="h-full" aria-hidden />
+            )}
+          </Panel>
         </PanelGroup>
       </main>
     </div>
