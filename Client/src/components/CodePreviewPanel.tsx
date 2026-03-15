@@ -1,5 +1,5 @@
 import { Eye, Code2, Send, Loader2, MessageSquare, User, Bot, Sparkles, Copy, Check } from 'lucide-react';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { LivePreview } from './LivePreview';
 import { ResizableSplitPane } from './ResizableSplitPane';
 import type { ConversationEntry } from '../pages/SketchApp';
@@ -30,11 +30,11 @@ export function CodePreviewPanel({
     }
   };
 
-  const handleSendMessageInternal = useCallback(() => {
+  const handleSendMessageInternal = () => {
     if (!inputMessage.trim() || !onIterate || isGenerating) return;
     onIterate(inputMessage.trim());
     setInputMessage('');
-  }, [inputMessage, onIterate, isGenerating]);
+  };
 
   // Show "Applying changes..." when last message is user and we're generating
   const isIterating = isGenerating && conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1]?.role === 'user';
