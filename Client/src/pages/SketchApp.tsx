@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle, type PanelImperativeHandle } from 'react-resizable-panels';
 import { Header } from '../components/Header';
 import { WhiteboardContainer } from '../components/WhiteboardContainer';
 import type { ExportData } from '../components/WhiteboardContainer';
@@ -29,7 +29,6 @@ interface AppState {
   activeTab: TabType;
   selectedModel: string;
   conversationHistory: ConversationEntry[];
-  refineOnlyMode: boolean;
   error: string | null;
   currentSketchId: string | null;
   currentSketchTitle: string | null;
@@ -49,6 +48,8 @@ export function SketchApp() {
   const exportDataRef = useRef<(() => Promise<ExportData | null>) | null>(null);
   const conversationHistoryRef = useRef<ConversationEntry[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastKnownSceneRef = useRef<{ elements: unknown[]; files: Record<string, unknown> }>({ elements: [], files: {} });
+  const leftPanelRef = useRef<PanelImperativeHandle | null>(null);
 
   const [state, setState] = useState<AppState>({
     isGenerating: false,
@@ -56,7 +57,6 @@ export function SketchApp() {
     activeTab: 'preview',
     selectedModel: 'gpt-4o',
     conversationHistory: [],
-    refineOnlyMode: false,
     error: null,
     currentSketchId: null,
     currentSketchTitle: null,
@@ -135,6 +135,17 @@ export function SketchApp() {
 
   // Keep ref in sync so handleSave always has latest conversationHistory (avoids stale closure on quick Save after refine)
   conversationHistoryRef.current = state.conversationHistory;
+
+  // Collapse left panel (canvas) when Refine tab is active; expand when switching back
+  const showSplitView = state.generatedCode.length > 0 || state.isGenerating;
+  useEffect(() => {
+    if (!showSplitView) return;
+    if (state.activeTab === 'chat') {
+      leftPanelRef.current?.collapse();
+    } else {
+      leftPanelRef.current?.expand();
+    }
+  }, [state.activeTab, showSplitView]);
 
   const handleGenerate = useCallback(async (editor: ExcalidrawImperativeAPI | null) => {
     setState((prev) => ({ ...prev, isGenerating: true, error: null, activeTab: 'code' }));
@@ -513,8 +524,6 @@ export function SketchApp() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [state.generatedCode]);
 
-  const showSplitView = state.generatedCode.length > 0 || state.isGenerating;
-
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       {/* Header with integrated sketch controls */}
@@ -538,14 +547,6 @@ export function SketchApp() {
           isSaving: state.isSaving,
           onExport: handleExport,
           onFullscreen: handleFullscreen,
-          refineOnlyMode: state.refineOnlyMode,
-          onRefineOnlyModeChange: (enabled) => {
-            setState((prev) => ({
-              ...prev,
-              refineOnlyMode: enabled,
-              activeTab: enabled && prev.activeTab === 'chat' ? 'preview' : prev.activeTab,
-            }));
-          },
           visibility: state.visibility,
           onVisibilityChange: (v) => setState((prev) => ({ ...prev, visibility: v })),
           tags: state.tags,
@@ -572,70 +573,53 @@ export function SketchApp() {
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Main Content - single layout: canvas collapses when Refine tab is active (stays mounted to preserve state) */}
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        {state.refineOnlyMode ? (
-          <>
-            <div
-              className="fixed -left-[9999px] top-0 w-[800px] h-[600px] overflow-hidden -z-10"
-              aria-hidden="true"
-            >
-              <WhiteboardContainer
-                isGenerating={state.isGenerating}
-                onGenerate={handleGenerate}
-                onClear={handleClear}
-                onEditorMount={(ed) => {
-                  editorRef.current = ed;
-                }}
-                exportDataRef={exportDataRef}
-                initialSnapshot={state.tldrawSnapshot}
-                sketchId={sketchIdParam}
-                hasExistingCode={!!state.generatedCode}
-              />
-            </div>
-            <CodePreviewPanel
-              activeTab={state.activeTab}
-              generatedCode={state.generatedCode}
+        <PanelGroup orientation="horizontal" className="sketch-panel-group">
+          <Panel
+            id="canvas-panel"
+            panelRef={leftPanelRef}
+            defaultSize={showSplitView ? 55 : 100}
+            minSize={showSplitView ? 0 : 25}
+            collapsible={showSplitView}
+            collapsedSize={0}
+            className="sketch-left-pane"
+          >
+            <WhiteboardContainer
+              key={sketchIdParam ?? 'new'}
               isGenerating={state.isGenerating}
-              conversationHistory={state.conversationHistory}
-              onIterate={handleIterate}
-              refineOnlyMode
+              onGenerate={handleGenerate}
+              onClear={handleClear}
+              onEditorMount={(ed) => {
+                editorRef.current = ed;
+              }}
+              onSceneChange={(elements, files) => {
+                lastKnownSceneRef.current = { elements, files };
+              }}
+              exportDataRef={exportDataRef}
+              lastKnownSceneRef={lastKnownSceneRef}
+              initialSnapshot={state.tldrawSnapshot}
+              sketchId={sketchIdParam}
+              hasExistingCode={!!state.generatedCode}
             />
-          </>
-        ) : (
-          <PanelGroup orientation="horizontal" className="sketch-panel-group">
-            <Panel defaultSize={showSplitView ? 55 : 100} minSize={25} className="sketch-left-pane">
-              <WhiteboardContainer
+          </Panel>
+
+          {showSplitView && (
+            <PanelResizeHandle className="sketch-drag-handle" />
+          )}
+
+          {showSplitView && (
+            <Panel defaultSize={45} minSize={25} className="sketch-right-pane">
+              <CodePreviewPanel
+                activeTab={state.activeTab}
+                generatedCode={state.generatedCode}
                 isGenerating={state.isGenerating}
-                onGenerate={handleGenerate}
-                onClear={handleClear}
-                onEditorMount={(ed) => {
-                  editorRef.current = ed;
-                }}
-                exportDataRef={exportDataRef}
-                initialSnapshot={state.tldrawSnapshot}
-                sketchId={sketchIdParam}
-                hasExistingCode={!!state.generatedCode}
+                conversationHistory={state.conversationHistory}
+                onIterate={handleIterate}
               />
             </Panel>
-
-            {showSplitView && (
-              <PanelResizeHandle className="sketch-drag-handle" />
-            )}
-
-            {showSplitView && (
-              <Panel defaultSize={45} minSize={25} className="sketch-right-pane">
-                <CodePreviewPanel
-                  activeTab={state.activeTab}
-                  generatedCode={state.generatedCode}
-                  isGenerating={state.isGenerating}
-                  conversationHistory={state.conversationHistory}
-                  onIterate={handleIterate}
-                />
-              </Panel>
-            )}
-          </PanelGroup>
-        )}
+          )}
+        </PanelGroup>
       </main>
     </div>
   );

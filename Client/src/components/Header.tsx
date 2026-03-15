@@ -47,8 +47,6 @@ export interface SketchHeaderControls {
   isSaving: boolean;
   onExport: () => void;
   onFullscreen: () => void;
-  refineOnlyMode: boolean;
-  onRefineOnlyModeChange: (enabled: boolean) => void;
   visibility?: 'public' | 'private';
   onVisibilityChange?: (v: 'public' | 'private') => void;
   tags?: string[];
@@ -98,8 +96,6 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
       isSaving,
       onExport,
       onFullscreen,
-      refineOnlyMode,
-      onRefineOnlyModeChange,
       visibility = 'public',
       onVisibilityChange,
       tags = [],
@@ -121,29 +117,29 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
 
           <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
 
-          {/* Tabs - Refine tab hidden in refine-only mode (right pane is always chat) */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-shrink-0">
-            <TabButton
-              active={activeTab === 'preview'}
-              onClick={() => onTabChange('preview')}
-              icon={<Eye className="w-3.5 h-3.5" />}
-              label="Preview"
-            />
-            <TabButton
-              active={activeTab === 'code'}
-              onClick={() => onTabChange('code')}
-              icon={<Code2 className="w-3.5 h-3.5" />}
-              label="Code"
-            />
-            {generatedCode && !refineOnlyMode && (
+          {/* Tabs - only visible when UI has been generated */}
+          {generatedCode && (
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-shrink-0">
+              <TabButton
+                active={activeTab === 'preview'}
+                onClick={() => onTabChange('preview')}
+                icon={<Eye className="w-3.5 h-3.5" />}
+                label="Preview"
+              />
+              <TabButton
+                active={activeTab === 'code'}
+                onClick={() => onTabChange('code')}
+                icon={<Code2 className="w-3.5 h-3.5" />}
+                label="Code"
+              />
               <TabButton
                 active={activeTab === 'chat'}
                 onClick={() => onTabChange('chat')}
                 icon={<MessageSquare className="w-3.5 h-3.5" />}
                 label="Refine"
               />
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Model selector */}
           {selectedModel && onModelChange && (
@@ -187,28 +183,8 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
             </div>
           )}
 
-          {/* Refine-only mode switch + Naming input */}
+          {/* Naming input */}
           <div className="w-full flex flex-row justify-end items-center gap-3">
-            {generatedCode && (
-              <label className="flex items-center gap-2 cursor-pointer shrink-0" title="Refine only: hide canvas, focus on chat + preview">
-                <span className="text-xs font-medium text-slate-600 whitespace-nowrap">Refine only</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={refineOnlyMode ? 'true' : 'false'}
-                  onClick={() => onRefineOnlyModeChange(!refineOnlyMode)}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${
-                    refineOnlyMode ? 'bg-indigo-500' : 'bg-slate-200'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-                      refineOnlyMode ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </label>
-            )}
             {generatedCode && (
               <div className="flex flex-row items-center gap-2 border rounded-lg border-indigo-500 pr-1">
                 <input

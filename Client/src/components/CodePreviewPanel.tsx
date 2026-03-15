@@ -12,7 +12,6 @@ interface CodePreviewPanelProps {
   isGenerating: boolean;
   conversationHistory: ConversationEntry[];
   onIterate?: (feedback: string) => void;
-  refineOnlyMode?: boolean;
 }
 
 export function CodePreviewPanel({
@@ -21,7 +20,6 @@ export function CodePreviewPanel({
   isGenerating,
   conversationHistory,
   onIterate,
-  refineOnlyMode = false,
 }: CodePreviewPanelProps) {
   const [inputMessage, setInputMessage] = useState('');
 
@@ -44,9 +42,8 @@ export function CodePreviewPanel({
   // Show GeneratingState only when we have no code yet (waiting for first token). Once streaming starts, show code.
   const showGeneratingState = isGenerating && generatedCode.length < 30;
 
-  // Refine-only mode: split layout - left = Preview/Code, right = Chat (canvas hidden by SketchApp)
-  if (refineOnlyMode) {
-    const leftTab = activeTab === 'code' ? 'code' : 'preview';
+  // Refine tab: split layout - Preview on left, Chat on right
+  if (activeTab === 'chat') {
     return (
       <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
@@ -55,10 +52,8 @@ export function CodePreviewPanel({
             <div className="h-full overflow-hidden bg-white rounded-tl-xl border border-slate-200">
               {showGeneratingState ? (
                 <GeneratingState />
-              ) : leftTab === 'preview' ? (
-                <PreviewView code={generatedCode} isStreaming={isGenerating} />
               ) : (
-                <CodeView code={generatedCode} isStreaming={isGenerating} />
+                <PreviewView code={generatedCode} isStreaming={isGenerating} />
               )}
             </div>
           }
@@ -83,7 +78,7 @@ export function CodePreviewPanel({
     );
   }
 
-  // Normal mode: single panel with tabs
+  // Preview or Code tab: single panel
   return (
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />

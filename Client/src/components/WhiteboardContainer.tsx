@@ -14,10 +14,12 @@ interface WhiteboardContainerProps {
   onGenerate: (api: ExcalidrawImperativeAPI | null) => void;
   onClear: () => void;
   onEditorMount?: (api: ExcalidrawImperativeAPI | null) => void;
+  onSceneChange?: (elements: unknown[], files: Record<string, unknown>) => void;
   initialSnapshot?: string | null;
   sketchId?: string | null;
   hasExistingCode?: boolean;
   exportDataRef?: React.MutableRefObject<(() => Promise<ExportData | null>) | null>;
+  lastKnownSceneRef?: React.MutableRefObject<{ elements: unknown[]; files: Record<string, unknown> }>;
 }
 
 export function WhiteboardContainer({
@@ -25,10 +27,12 @@ export function WhiteboardContainer({
   onGenerate,
   onClear,
   onEditorMount,
+  onSceneChange,
   initialSnapshot,
   sketchId,
   hasExistingCode,
   exportDataRef,
+  lastKnownSceneRef,
 }: WhiteboardContainerProps) {
   const [hasContent, setHasContent] = useState(false);
   const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
@@ -82,6 +86,7 @@ export function WhiteboardContainer({
           (el) => !el.isDeleted
         );
         setHasContent(active.length > 0);
+        onSceneChange?.(active as unknown[], parsed.files ?? {});
         console.log('[Canvas] Snapshot restored, elements:', parsed.elements.length, 'files:', Object.keys(parsed.files ?? {}).length);
       } else {
         console.warn('[Canvas] Snapshot is not Excalidraw format, skipping restore');
@@ -89,7 +94,7 @@ export function WhiteboardContainer({
     } catch (err) {
       console.warn('[Canvas] Failed to parse snapshot, starting blank:', err);
     }
-  }, []);
+  }, [onSceneChange]);
 
   const handleExcalidrawAPI = useCallback(
     (api: ExcalidrawImperativeAPI) => {
@@ -192,28 +197,32 @@ export function WhiteboardContainer({
     const appState = api.getAppState();
     const files = { ...accumulatedFilesRef.current, ...api.getFiles() };
 
+    const finalElements = elements.length > 0 ? elements : (lastKnownSceneRef?.current?.elements ?? []);
+    const finalFiles = Object.keys(files).length > 0 ? files : (lastKnownSceneRef?.current?.files ?? {});
+
     console.log('[Canvas] Save triggered:', {
-      elementCount: elements.length,
-      fileCount: Object.keys(files).length,
+      fromExcalidraw: elements.length,
+      fromFallback: finalElements.length,
+      files: Object.keys(finalFiles).length,
       isReady: isExcalidrawReady.current,
     });
 
-    if (elements.length === 0) {
+    if (finalElements.length === 0) {
       console.warn('[Canvas] getExportData: no elements on canvas');
     }
 
-    const snapshot = serializeAsJSON(elements, appState, files, 'local');
+    const snapshot = serializeAsJSON(finalElements as Parameters<typeof serializeAsJSON>[0], appState, finalFiles as Parameters<typeof serializeAsJSON>[2], 'local');
 
     let thumbnailBlob: Blob | null = null;
     try {
       const blob = await exportToBlob({
-        elements,
+        elements: finalElements as Parameters<typeof exportToBlob>[0]['elements'],
         appState: {
           ...appState,
           exportBackground: true,
           viewBackgroundColor: '#ffffff',
         },
-        files,
+        files: finalFiles as Parameters<typeof exportToBlob>[0]['files'],
         mimeType: 'image/png',
         quality: 0.85,
       });
@@ -222,14 +231,14 @@ export function WhiteboardContainer({
         console.error('[Canvas] exportToBlob returned empty blob');
       } else {
         thumbnailBlob = blob;
-        console.log('[Canvas] thumbnail blob size:', blob.size, 'files count:', Object.keys(files).length);
+        console.log('[Canvas] thumbnail blob size:', blob.size, 'files count:', Object.keys(finalFiles).length);
       }
     } catch (err) {
       console.error('[Canvas] Failed to export thumbnail:', err);
     }
 
     return { snapshot, thumbnailBlob };
-  }, []);
+  }, [lastKnownSceneRef]);
 
   useEffect(() => {
     if (exportDataRef) {
@@ -246,8 +255,12 @@ export function WhiteboardContainer({
     if (files && Object.keys(files).length > 0) {
       accumulatedFilesRef.current = { ...accumulatedFilesRef.current, ...files };
     }
-    setHasContent(elements.filter((el) => !el.isDeleted).length > 0);
-  }, []);
+    const activeElements = elements.filter((el) => !el.isDeleted);
+    if (activeElements.length > 0 || Object.keys(accumulatedFilesRef.current).length > 0) {
+      onSceneChange?.(activeElements as unknown[], accumulatedFilesRef.current);
+    }
+    setHasContent(activeElements.length > 0);
+  }, [onSceneChange]);
 
   const handleClear = useCallback(() => {
     const api = excalidrawAPIRef.current;
