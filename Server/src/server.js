@@ -10,7 +10,7 @@ import authRoutes from './routes/authRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import sketchRoutes from './routes/sketchRoutes.js';
 import publicSketchRoutes from './routes/publicSketchRoutes.js';
-
+import compression from 'compression';
 // Load environment variables
 dotenv.config();
 
@@ -32,6 +32,8 @@ app.use(helmet({
 app.get("/health", (req, res) => {
   res.status(200).send("Server is alive");
 });
+
+app.use(compression());
 // ===================
 // CORS Configuration
 // ===================
