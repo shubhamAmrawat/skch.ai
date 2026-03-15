@@ -4,7 +4,7 @@ import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import { generateOtp, setOtp, verifyOtp, consumeOtp } from '../services/otpStore.js';
 import { sendOtpEmail } from '../services/emailService.js';
-
+import { userCache } from '../config/userCache.js';
 // ===================
 // Token Configuration
 // ===================
@@ -439,7 +439,7 @@ export const logoutAll = async (req, res) => {
  */
 export const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = req.user;
 
     if (!user) {
       return res.status(404).json({
@@ -508,14 +508,14 @@ export const updateMe = async (req, res) => {
       { $set: updates },
       { new: true, runValidators: true }
     );
-
+  
     if (!user) {
       return res.status(404).json({
         success: false,
         error: 'User not found',
       });
     }
-
+    userCache.del(req.userId.toString()); 
     res.json({
       success: true,
       message: 'Profile updated successfully',
@@ -582,7 +582,7 @@ export const changePassword = async (req, res) => {
     // Update password
     user.password = newPassword;
     await user.save();
-
+    userCache.del(req.userId.toString()); 
     // Invalidate all refresh tokens except current session
     const currentToken = req.cookies?.refreshToken || req.body.refreshToken;
     if (currentToken) {
@@ -744,7 +744,7 @@ export const resetPassword = async (req, res) => {
 
     user.password = newPassword;
     await user.save();
-
+    userCache.del(req.user._id.toString()); 
     // Consume OTP only after successful reset (so user can retry with different password if rejected above)
     consumeOtp(normalizedEmail);
 
