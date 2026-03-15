@@ -29,7 +29,9 @@ connectDB();
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
-
+app.get("/health", (req, res) => {
+  res.status(200).send("Server is alive");
+});
 // ===================
 // CORS Configuration
 // ===================
