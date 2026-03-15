@@ -4,7 +4,7 @@ import { LivePreview } from './LivePreview';
 import { ResizableSplitPane } from './ResizableSplitPane';
 import type { ConversationEntry } from '../pages/SketchApp';
 
-type TabType = 'preview' | 'code' | 'chat';
+type TabType = 'canvas' | 'preview' | 'code' | 'chat';
 
 interface CodePreviewPanelProps {
   activeTab: TabType;
@@ -78,7 +78,36 @@ export function CodePreviewPanel({
     );
   }
 
-  // Preview or Code tab: single panel
+  // Code tab: split layout - Preview on left, Code on right (for future editing)
+  if (activeTab === 'code') {
+    return (
+      <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
+        <ResizableSplitPane
+          left={
+            <div className="h-full overflow-hidden bg-white rounded-tl-xl border border-slate-200">
+              {showGeneratingState ? (
+                <GeneratingState />
+              ) : (
+                <PreviewView code={generatedCode} isStreaming={isGenerating} />
+              )}
+            </div>
+          }
+          right={
+            <div className="h-full overflow-hidden bg-slate-50">
+              <CodeView code={generatedCode} isStreaming={isGenerating} />
+            </div>
+          }
+          defaultLeftWidth={55}
+          minLeftWidth={35}
+          maxLeftWidth={75}
+        />
+      </div>
+    );
+  }
+
+  // Preview tab: single panel (full width)
+  // Canvas tab: right panel is collapsed; render placeholder (not visible)
   return (
     <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
@@ -87,18 +116,8 @@ export function CodePreviewPanel({
           <GeneratingState />
         ) : activeTab === 'preview' ? (
           <PreviewView code={generatedCode} isStreaming={isGenerating} />
-        ) : activeTab === 'code' ? (
-          <CodeView code={generatedCode} isStreaming={isGenerating} />
         ) : (
-          <ChatView
-            messages={conversationHistory}
-            inputMessage={inputMessage}
-            setInputMessage={setInputMessage}
-            onSend={handleSendMessageInternal}
-            onKeyDown={handleKeyDown}
-            isGenerating={isGenerating}
-            isIterating={isIterating}
-          />
+          <div className="h-full flex items-center justify-center text-slate-400 text-sm" />
         )}
       </div>
     </div>

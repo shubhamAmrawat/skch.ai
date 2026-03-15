@@ -13,7 +13,7 @@ import { exportToBlob } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
 // Tab type
-type TabType = 'preview' | 'code' | 'chat';
+type TabType = 'canvas' | 'preview' | 'code' | 'chat';
 
 // Conversation history entry for refine tab
 export interface ConversationEntry {
@@ -50,11 +50,12 @@ export function SketchApp() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastKnownSceneRef = useRef<{ elements: unknown[]; files: Record<string, unknown> }>({ elements: [], files: {} });
   const leftPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const rightPanelRef = useRef<PanelImperativeHandle | null>(null);
 
   const [state, setState] = useState<AppState>({
     isGenerating: false,
     generatedCode: '',
-    activeTab: 'preview',
+    activeTab: 'canvas',
     selectedModel: 'gpt-4o',
     conversationHistory: [],
     error: null,
@@ -115,7 +116,7 @@ export function SketchApp() {
           tldrawSnapshot: snapshotData,
           visibility: (sketch as { visibility?: string }).visibility === 'public' ? 'public' : 'private',
           tags: (sketch as { tags?: string[] }).tags ?? [],
-          activeTab: 'preview',
+          activeTab: 'chat',
           conversationHistory: loadedHistory,
         }));
       })
@@ -136,19 +137,21 @@ export function SketchApp() {
   // Keep ref in sync so handleSave always has latest conversationHistory (avoids stale closure on quick Save after refine)
   conversationHistoryRef.current = state.conversationHistory;
 
-  // Collapse left panel (canvas) when Refine tab is active; expand when switching back
+  // Panel collapse: Canvas = canvas full width; Preview/Code/Refine = right panel full width
   const showSplitView = state.generatedCode.length > 0 || state.isGenerating;
   useEffect(() => {
     if (!showSplitView) return;
-    if (state.activeTab === 'chat') {
-      leftPanelRef.current?.collapse();
-    } else {
+    if (state.activeTab === 'canvas') {
       leftPanelRef.current?.expand();
+      rightPanelRef.current?.collapse();
+    } else {
+      leftPanelRef.current?.collapse();
+      rightPanelRef.current?.expand();
     }
   }, [state.activeTab, showSplitView]);
 
   const handleGenerate = useCallback(async (editor: ExcalidrawImperativeAPI | null) => {
-    setState((prev) => ({ ...prev, isGenerating: true, error: null, activeTab: 'code' }));
+    setState((prev) => ({ ...prev, isGenerating: true, error: null, activeTab: 'chat' }));
 
     try {
       let imageBase64: string | null = null;
@@ -243,7 +246,7 @@ export function SketchApp() {
               ...prev,
               isGenerating: false,
               generatedCode: code,
-              activeTab: 'preview',
+              activeTab: 'chat',
               error: null,
               conversationHistory: hadExistingCode ? prev.conversationHistory : [],
               suggestedTags: result.tags ?? [],
@@ -289,7 +292,7 @@ export function SketchApp() {
       ...prev,
       isGenerating: true,
       error: null,
-      activeTab: 'code',
+      activeTab: 'chat',
       conversationHistory: [...prev.conversationHistory, userEntry],
     }));
 
@@ -329,7 +332,7 @@ export function SketchApp() {
               ...prev,
               isGenerating: false,
               generatedCode: result.code ?? '',
-              activeTab: 'preview',
+              activeTab: 'chat',
               error: null,
               conversationHistory: [...prev.conversationHistory, assistantEntry],
               suggestedTags: result.tags?.length ? result.tags : prev.suggestedTags,
@@ -362,7 +365,7 @@ export function SketchApp() {
     setState((prev) => ({
       ...prev,
       generatedCode: '',
-      activeTab: 'preview',
+      activeTab: 'canvas',
       conversationHistory: [],
       error: null,
       currentSketchId: null,
@@ -609,7 +612,15 @@ export function SketchApp() {
           )}
 
           {showSplitView && (
-            <Panel defaultSize={45} minSize={25} className="sketch-right-pane">
+            <Panel
+              id="code-preview-panel"
+              panelRef={rightPanelRef}
+              defaultSize={45}
+              minSize={0}
+              collapsible
+              collapsedSize={0}
+              className="sketch-right-pane"
+            >
               <CodePreviewPanel
                 activeTab={state.activeTab}
                 generatedCode={state.generatedCode}

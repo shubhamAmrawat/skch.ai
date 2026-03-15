@@ -21,7 +21,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../hooks/useAuth';
 
-type TabType = 'preview' | 'code' | 'chat';
+type TabType = 'canvas' | 'preview' | 'code' | 'chat';
 
 const MODEL_OPTIONS = [
   { value: 'gpt-4o', label: 'GPT-4o' },
@@ -120,6 +120,12 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
           {/* Tabs - only visible when UI has been generated */}
           {generatedCode && (
             <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-shrink-0">
+              <TabButton
+                active={activeTab === 'canvas'}
+                onClick={() => onTabChange('canvas')}
+                icon={<Pencil className="w-3.5 h-3.5" />}
+                label="Canvas"
+              />
               <TabButton
                 active={activeTab === 'preview'}
                 onClick={() => onTabChange('preview')}
