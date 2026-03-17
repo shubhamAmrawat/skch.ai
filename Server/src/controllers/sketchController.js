@@ -1,5 +1,22 @@
+import { sketchCache, sketchListKey, sketchKey } from '../config/sketchCache.js';
 import Sketch from '../models/Sketch.js';
 import mongoose from 'mongoose';
+
+
+// Invalidate all list caches for a user + specific sketch cache
+const bustSketchCache = (userId, sketchId = null) => {
+  // Delete all paginated list entries for this user
+  const keys = sketchCache.keys();
+  const userListKeys = keys.filter(k => k.startsWith(`sketches:list:${userId}`));
+  userListKeys.forEach(k => sketchCache.del(k));
+  
+  // Delete specific sketch if provided
+  if (sketchId) {
+    sketchCache.del(sketchKey(userId, sketchId.toString()));
+  }
+  
+  console.log(`[Sketch] Cache busted for user ${userId}, keys removed: ${userListKeys.length + (sketchId ? 1 : 0)}`);
+};
 
 /**
  * Create a new sketch
@@ -56,7 +73,8 @@ export async function createSketch(req, res) {
       visibility: visibility === 'public' ? 'public' : 'private',
       tags: tagsArr,
     });
-
+// new sketch → invalidate list
+    bustSketchCache(userId);
     return res.status(201).json({
       success: true,
       data: {
@@ -97,6 +115,18 @@ export async function listSketches(req, res) {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
 
+    // Cache key includes page+limit so different pages are cached separately
+    const cacheKey = `${sketchListKey(userId)}:page${page}:limit${limit}`;
+    
+    // Check cache first
+    const cached = sketchCache.get(cacheKey);
+    if (cached) {
+      console.log(`[Sketch] Cache hit — list for user ${userId} page ${page}`);
+      return res.json(cached);
+    }
+
+    console.log(`[Sketch] Cache miss — fetching list for user ${userId} from DB`);
+
     const [sketches, total] = await Promise.all([
       Sketch.find({ userId })
         .sort({ createdAt: -1 })
@@ -107,25 +137,28 @@ export async function listSketches(req, res) {
       Sketch.countDocuments({ userId }),
     ]);
 
-    const data = sketches.map((s) => ({
-      id: s._id.toString(),
-      title: s.title,
-      code: s.code,
-      thumbnail: s.thumbnail,
-      tldrawSnapshot: s.tldrawSnapshot,
-      createdAt: s.createdAt,
-      updatedAt: s.updatedAt,
-    }));
-
-    return res.json({
+    const response = {
       success: true,
       data: {
-        sketches: data,
+        sketches: sketches.map((s) => ({
+          id: s._id.toString(),
+          title: s.title,
+          code: s.code,
+          thumbnail: s.thumbnail,
+          tldrawSnapshot: s.tldrawSnapshot,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+        })),
         total,
         page,
         limit,
       },
-    });
+    };
+
+    // Store in cache
+    sketchCache.set(cacheKey, response);
+
+    return res.json(response);
   } catch (error) {
     console.error('[Sketch] List error:', error);
     return res.status(500).json({
@@ -135,7 +168,6 @@ export async function listSketches(req, res) {
     });
   }
 }
-
 /**
  * Get a single sketch
  * GET /api/sketches/:id
@@ -153,8 +185,17 @@ export async function getSketch(req, res) {
       });
     }
 
-    const sketch = await Sketch.findOne({ _id: id, userId }).lean();
+    // Check cache
+    const cacheKey = sketchKey(userId,id);
+    const cached = sketchCache.get(cacheKey);
+    if (cached) {
+      console.log(`[Sketch] Cache hit — single sketch ${id}`);
+      return res.json(cached);
+    }
 
+    console.log(`[Sketch] Cache miss — fetching sketch ${id} from DB`);
+
+    const sketch = await Sketch.findOne({ _id: id, userId }).lean();
     if (!sketch) {
       return res.status(404).json({
         success: false,
@@ -163,7 +204,7 @@ export async function getSketch(req, res) {
       });
     }
 
-    return res.json({
+    const response = {
       success: true,
       data: {
         sketch: {
@@ -183,7 +224,10 @@ export async function getSketch(req, res) {
           updatedAt: sketch.updatedAt,
         },
       },
-    });
+    };
+
+    sketchCache.set(cacheKey, response);
+    return res.json(response);
   } catch (error) {
     console.error('[Sketch] Get error:', error);
     return res.status(500).json({
@@ -252,7 +296,7 @@ export async function updateSketch(req, res) {
         message: 'Sketch not found',
       });
     }
-
+    bustSketchCache(userId, id);
     return res.json({
       success: true,
       data: {
@@ -308,7 +352,7 @@ export async function deleteSketch(req, res) {
         message: 'Sketch not found',
       });
     }
-
+    bustSketchCache(userId, id);
     return res.json({
       success: true,
       message: 'Sketch deleted',
