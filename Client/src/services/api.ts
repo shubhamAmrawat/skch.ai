@@ -64,6 +64,17 @@ export async function generateUIStreaming(
     let errorMessage = 'Failed to generate UI';
     try {
       const data = await response.json();
+  
+      // Handle rate limit specifically — give user a clear message
+      if (response.status === 429) {
+        const waitSeconds = data.retryAfter;
+        const waitMessage = waitSeconds
+          ? `Generation limit reached. Please wait ${Math.ceil(waitSeconds / 60)} minutes before trying again.`
+          : data.message || 'Generation limit reached. Please wait before trying again.';
+        callbacks.onError(waitMessage);
+        return;
+      }
+  
       errorMessage = data.details || data.error || errorMessage;
     } catch {
       errorMessage = response.statusText || errorMessage;
@@ -150,6 +161,13 @@ export async function generateUI(request: GenerateRequest): Promise<GenerateResp
     const data = await response.json();
 
     if (!response.ok) {
+      if (response.status === 429) {
+        const waitSeconds = data.retryAfter;
+        const waitMessage = waitSeconds
+          ? `Generation limit reached. Please wait ${Math.ceil(waitSeconds / 60)} minutes.`
+          : data.message || 'Generation limit reached. Please wait before trying again.';
+        throw new Error(waitMessage);
+      }
       throw new Error(data.details || data.error || 'Failed to generate UI');
     }
 

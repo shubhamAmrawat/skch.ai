@@ -11,6 +11,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import sketchRoutes from './routes/sketchRoutes.js';
 import publicSketchRoutes from './routes/publicSketchRoutes.js';
 import compression from 'compression';
+import { generalApiLimit } from './config/rateLimits.js';
 // Load environment variables
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use('/api', generalApiLimit);
 
 // ===================
 // Body Parser & Cookies

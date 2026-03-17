@@ -16,47 +16,11 @@ import {
 } from '../controllers/authController.js';
 import { googleAuth } from '../controllers/googleAuthController.js';
 import { authenticate } from '../middleware/auth.js';
+import { authLimit, refreshLimit, generalApiLimit } from '../config/rateLimits.js';
 
 const router = express.Router();
 
-// ===================
-// Rate Limiters
-// ===================
 
-// Strict limiter for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window
-  message: {
-    success: false,
-    error: 'Too many attempts',
-    message: 'Too many login attempts. Please try again in 15 minutes.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Less strict limiter for token refresh
-const refreshLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10, // 10 refreshes per minute
-  message: {
-    success: false,
-    error: 'Too many requests',
-    message: 'Too many token refresh attempts. Please wait.',
-  },
-});
-
-// General API limiter
-const generalLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // 60 requests per minute
-  message: {
-    success: false,
-    error: 'Too many requests',
-    message: 'Please slow down your requests.',
-  },
-});
 
 // ===================
 // Validation Schemas
@@ -179,93 +143,34 @@ const resetPasswordValidation = [
 // Public Routes
 // ===================
 
-/**
- * @route   POST /api/auth/register
- * @desc    Register a new user
- * @access  Public
- */
-router.post('/register', authLimiter, registerValidation, register);
 
-/**
- * @route   POST /api/auth/login
- * @desc    Login user
- * @access  Public
- */
-router.post('/login', authLimiter, loginValidation, login);
+router.post('/register', authLimit, registerValidation, register);
 
-/**
- * @route   POST /api/auth/refresh
- * @desc    Refresh access token
- * @access  Public (requires valid refresh token)
- */
-router.post('/refresh', refreshLimiter, refreshToken);
+router.post('/login', authLimit, loginValidation, login);
 
-/**
- * @route   POST /api/auth/google
- * @desc    Authenticate with Google OAuth
- * @access  Public
- */
-router.post('/google', authLimiter, googleAuth);
+router.post('/refresh', refreshLimit, refreshToken);
 
-/**
- * @route   POST /api/auth/forgot-password
- * @desc    Request OTP for password reset
- * @access  Public
- */
-router.post('/forgot-password', authLimiter, forgotPasswordValidation, forgotPassword);
+router.post('/google', authLimit, googleAuth);
 
-/**
- * @route   POST /api/auth/reset-password
- * @desc    Reset password using OTP
- * @access  Public
- */
-router.post('/reset-password', authLimiter, resetPasswordValidation, resetPassword);
+router.post('/forgot-password', authLimit, forgotPasswordValidation, forgotPassword);
+
+router.post('/reset-password', authLimit, resetPasswordValidation, resetPassword);
 
 // ===================
 // Protected Routes
 // ===================
 
-/**
- * @route   POST /api/auth/logout
- * @desc    Logout from current device
- * @access  Private
- */
 router.post('/logout', authenticate, logout);
 
-/**
- * @route   POST /api/auth/logout-all
- * @desc    Logout from all devices
- * @access  Private
- */
 router.post('/logout-all', authenticate, logoutAll);
 
-/**
- * @route   GET /api/auth/me
- * @desc    Get current user profile
- * @access  Private
- */
-router.get('/me', authenticate, generalLimiter, getMe);
+router.get('/me', authenticate, generalApiLimit, getMe);
 
-/**
- * @route   PUT /api/auth/me
- * @desc    Update current user profile
- * @access  Private
- */
-router.put('/me', authenticate, generalLimiter, updateProfileValidation, updateMe);
+router.put('/me', authenticate, generalApiLimit, updateProfileValidation, updateMe);
 
-/**
- * @route   POST /api/auth/change-password
- * @desc    Change user password
- * @access  Private
- */
-router.post('/change-password', authenticate, authLimiter, changePasswordValidation, changePassword);
+router.post('/change-password', authenticate, authLimit, changePasswordValidation, changePassword);
 
-/**
- * @route   GET /api/auth/sessions
- * @desc    Get active sessions
- * @access  Private
- */
-router.get('/sessions', authenticate, generalLimiter, getSessions);
+router.get('/sessions', authenticate, generalApiLimit, getSessions);
 
 export default router;
 
