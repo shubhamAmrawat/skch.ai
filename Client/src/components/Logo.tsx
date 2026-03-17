@@ -1,4 +1,4 @@
-import iconImg from '../assets/icon.png';
+import iconImg from '../assets/logo23.png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -19,7 +19,7 @@ export function Logo({ size = 'md', iconSize, showText = true, className = '' }:
 
   return (
     <div
-      className={`flex items-center gap-2.5 ${className} rounded-xl px-4 py-1.5  cursor-cell`}
+      className={`flex items-center  ${className} rounded-xl px-4   cursor-cell`}
     >
       <img src={iconImg} alt="" className="shrink-0" width={iconPx} height={iconPx} />
 
