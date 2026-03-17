@@ -78,7 +78,7 @@ export function DashboardPage() {
           <div className="grid sm:grid-cols-2 gap-6">
             <button
               onClick={handleStartSketching}
-              className="group flex items-center gap-4 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all text-left"
+              className="group flex items-center gap-4 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all text-left cursor-cell"
             >
               <div className="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
                 <Pencil className="w-7 h-7 text-indigo-600" />
@@ -92,7 +92,7 @@ export function DashboardPage() {
 
             <button
               onClick={() => navigate('/sketches')}
-              className="group flex items-center gap-4 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all text-left"
+              className="group flex items-center gap-4 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all text-left cursor-cell"
             >
               <div className="w-14 h-14 rounded-2xl bg-violet-100 flex items-center justify-center group-hover:bg-violet-200 transition-colors">
                 <FolderOpen className="w-7 h-7 text-violet-600" />
@@ -135,7 +135,7 @@ export function DashboardPage() {
                   <button
                     key={sketch.id}
                     onClick={() => navigate(`/explore?id=${sketch.id}`)}
-                    className="group text-left bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all"
+                    className="group text-left bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all cursor-cell"
                   >
                     <div className="aspect-video bg-slate-100 flex items-center justify-center overflow-hidden">
                       {sketch.thumbnail ? (
