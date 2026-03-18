@@ -1,6 +1,5 @@
 import { sketchCache, sketchListKey, sketchKey } from '../config/sketchCache.js';
 import Sketch from '../models/Sketch.js';
-import mongoose from 'mongoose';
 
 
 // Invalidate all list caches for a user + specific sketch cache
@@ -46,13 +45,6 @@ export async function createSketch(req, res) {
     const { title, code, tldrawSnapshot, thumbnail, conversationHistory, visibility, tags } = req.body;
     const userId = req.userId;
 
-    if (!code || typeof code !== 'string') {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        message: 'Code is required',
-      });
-    }
 
     const tagsArr = normalizeTags(tags);
     if (tagsArr.length === 0) {
@@ -177,13 +169,6 @@ export async function getSketch(req, res) {
     const { id } = req.params;
     const userId = req.userId;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid ID',
-        message: 'Invalid sketch ID',
-      });
-    }
 
     // Check cache
     const cacheKey = sketchKey(userId,id);
@@ -247,14 +232,6 @@ export async function updateSketch(req, res) {
     const { id } = req.params;
     const { title, code, tldrawSnapshot, thumbnail, conversationHistory, visibility, tags } = req.body;
     const userId = req.userId;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid ID',
-        message: 'Invalid sketch ID',
-      });
-    }
 
     const update = {};
     if (title !== undefined) update.title = title?.trim() || 'Untitled Sketch';
@@ -335,13 +312,6 @@ export async function deleteSketch(req, res) {
     const { id } = req.params;
     const userId = req.userId;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid ID',
-        message: 'Invalid sketch ID',
-      });
-    }
 
     const result = await Sketch.deleteOne({ _id: id, userId });
 
@@ -375,10 +345,6 @@ export async function getSketchSnapshot(req, res) {
   try {
     const { sketchId } = req.params;
     const userId = req.userId;
-
-    if (!mongoose.Types.ObjectId.isValid(sketchId)) {
-      return res.status(400).json({ error: 'Invalid sketch ID' });
-    }
 
     const sketch = await Sketch.findOne({ _id: sketchId, userId });
     if (!sketch) return res.status(404).json({ error: 'Sketch not found' });
