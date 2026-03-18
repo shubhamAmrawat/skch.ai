@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { userCache } from '../config/userCache.js';
+import logger from '../config/logger.js';
 /**
  * Authentication middleware
  * Verifies JWT access token and attaches user to request
@@ -58,7 +59,7 @@ export const authenticate = async (req, res, next) => {
 
     if (!user) {
       // Cache miss — go to DB
-      console.log(`[Auth] Cache miss — fetching user ${userId} from DB`);
+      logger.debug({ userId }, 'Auth cache miss — fetching from DB');
       user = await User.findById(userId);
     
       if (!user) {
@@ -99,7 +100,7 @@ export const authenticate = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('[Auth Middleware] Error:', error.message);
+    logger.error({ err: error }, 'Auth middleware error');
     return res.status(500).json({
       success: false,
       error: 'Authentication error',
@@ -140,12 +141,12 @@ export const optionalAuth = async (req, res, next) => {
         req.userId = user._id;
       }
     } catch (error) {
-      console.log('[OptionalAuth] Invalid token, continuing without auth');
+      logger.debug('OptionalAuth: Invalid token, continuing without auth');
     }
 
     next();
   } catch (error) {
-    console.error('[OptionalAuth Middleware] Error:', error.message);
+    logger.error({ err: error }, 'OptionalAuth middleware error');
     next();
   }
 };

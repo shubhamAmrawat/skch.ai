@@ -11,6 +11,8 @@ import sketchRoutes from './routes/sketchRoutes.js';
 import publicSketchRoutes from './routes/publicSketchRoutes.js';
 import compression from 'compression';
 import { generalApiLimit } from './config/rateLimits.js';
+import logger from './config/logger.js';
+import { requestLogger } from './middleware/requestLogger.js';
 // Load environment variables
 dotenv.config();
 
@@ -47,7 +49,7 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn(`[CORS] Blocked request from origin: ${origin}`);
+      logger.warn({ origin }, 'CORS blocked request from origin');
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -68,12 +70,7 @@ app.use(cookieParser());
 // ===================
 // Request Logging
 // ===================
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path}`);
-  next();
-});
-
+app.use(requestLogger);
 // ===================
 // API Routes
 // ===================
@@ -130,7 +127,7 @@ app.use((req, res) => {
 // Error Handler
 // ===================
 app.use((err, req, res, next) => {
-  console.error('[Error]', err.message);
+  logger.error({ err }, 'Unhandled error');
 
   // CORS error
   if (err.message === 'Not allowed by CORS') {
@@ -158,40 +155,27 @@ app.use((err, req, res, next) => {
 // Start Server
 // ===================
 app.listen(PORT, () => {
-  console.log(`
-╔═══════════════════════════════════════════════════════╗
-║                                                       ║
-║   🎨 sktch.ai API Server                              ║
-║                                                       ║
-║   Server:  http://localhost:${PORT}                      ║
-║   Health:  http://localhost:${PORT}/api/health           ║
-║                                                       ║
-║   Allowed Origins:                                    ║
-║   ${allowedOrigins.join(', ').padEnd(50)}║
-║                                                       ║
-╚═══════════════════════════════════════════════════════╝
-  `);
 
-  // Warn if essential env vars are not configured
+  logger.info({
+    port: PORT,
+    environment: process.env.NODE_ENV,
+    allowedOrigins,
+  }, 'sktch.ai server started');
+
   if (!process.env.OPENAI_API_KEY) {
-    console.warn('\n⚠️  WARNING: OPENAI_API_KEY is not set in environment variables!');
+    logger.warn('OPENAI_API_KEY not set — AI generation will fail');
   }
-
   if (!process.env.JWT_SECRET) {
-    console.warn('⚠️  WARNING: JWT_SECRET is not set. Using default (unsafe for production)!');
+    logger.warn('JWT_SECRET not set — authentication is unsafe');
   }
-
   if (!process.env.DB_URI) {
-    console.warn('⚠️  WARNING: DB_URI is not set. Database connection will fail!');
+    logger.error('DB_URI not set — server will crash on DB operations');
   }
-
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    console.warn('⚠️  WARNING: Cloudinary credentials not fully configured. Avatar upload will fail!');
+    logger.warn('Cloudinary not configured — avatar upload will fail');
   }
-
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️  WARNING: SMTP not configured. Forgot password (OTP emails) will fail!');
-    console.warn('   Add SMTP_HOST, SMTP_USER, SMTP_PASS to .env. For Gmail: smtp.gmail.com + App Password.');
+    logger.warn('SMTP not configured — password reset emails will fail');
   }
 });
 

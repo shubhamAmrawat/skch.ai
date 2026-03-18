@@ -1,5 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-
+import logger from './logger.js';
 /**
  * CONCEPT: Rate limiting has two key parameters:
  * - windowMs: the time window (e.g. 15 minutes)
@@ -24,7 +24,12 @@ export const aiGenerateLimit = rateLimit({
     return req.userId?.toString() || ipKeyGenerator(req);
   },
   handler: (req, res) => {
-    console.warn(`[RateLimit] AI endpoint hit by ${req.userId || req.ip}`);
+    logger.warn({ 
+      userId: req.userId, 
+      ip: req.ip,
+      endpoint: '/generate'
+    }, 'AI rate limit exceeded');
+    
     return res.status(429).json({
       success: false,
       error: 'Rate limit exceeded',
@@ -67,7 +72,7 @@ export const authLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.warn(`[RateLimit] Auth brute force attempt from ${req.ip}`);
+    logger.warn({ ip: req.ip }, 'Auth brute force attempt detected');
     return res.status(429).json({
       success: false,
       error: 'Too many attempts',

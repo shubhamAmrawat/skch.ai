@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-
+import logger from './logger.js';
 /**
  * MongoDB Connection Configuration
  */
@@ -8,7 +8,7 @@ const connectDB = async () => {
     const mongoURI = process.env.DB_URI;
 
     if (!mongoURI) {
-      console.error('❌ DB_URI is not defined in environment variables');
+      logger.error('DB_URI not set — server will crash on DB operations');
       process.exit(1);
     }
 
@@ -25,37 +25,34 @@ const connectDB = async () => {
     // Connect to MongoDB
     const conn = await mongoose.connect(mongoURI, options);
 
-    console.log(`
-╔═══════════════════════════════════════════════════════╗
-║  📦 MongoDB Connected                                 ║
-║  Host: ${conn.connection.host.padEnd(45)}║
-║  Database: ${conn.connection.name.padEnd(41)}║
-╚═══════════════════════════════════════════════════════╝
-    `);
+    logger.info({ 
+      host: conn.connection.host,
+      database: conn.connection.name 
+    }, 'MongoDB connected');
 
     // Connection event handlers
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err.message);
+      logger.error({ err }, 'MongoDB connection error');
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️ MongoDB disconnected. Attempting to reconnect...');
+      logger.warn('MongoDB disconnected — attempting reconnect');
     });
 
     mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected');
+      logger.info('MongoDB reconnected');
     });
 
     // Graceful shutdown handling
     process.on('SIGINT', async () => {
       await mongoose.connection.close();
-      console.log('\n🔌 MongoDB connection closed due to app termination');
+      logger.info('MongoDB connection closed due to app termination');
       process.exit(0);
     });
 
     return conn;
   } catch (error) {
-    console.error('❌ MongoDB connection failed:', error.message);
+    logger.error({ err: error }, 'MongoDB connection failed');
 
     // Exit process with failure if this is initial connection
     process.exit(1);

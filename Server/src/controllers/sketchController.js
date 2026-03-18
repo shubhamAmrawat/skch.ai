@@ -1,6 +1,6 @@
 import { sketchCache, sketchListKey, sketchKey } from '../config/sketchCache.js';
 import Sketch from '../models/Sketch.js';
-
+import logger from '../config/logger.js';
 
 // Invalidate all list caches for a user + specific sketch cache
 const bustSketchCache = (userId, sketchId = null) => {
@@ -14,7 +14,7 @@ const bustSketchCache = (userId, sketchId = null) => {
     sketchCache.del(sketchKey(userId, sketchId.toString()));
   }
   
-  console.log(`[Sketch] Cache busted for user ${userId}, keys removed: ${userListKeys.length + (sketchId ? 1 : 0)}`);
+  logger.debug({ userId, sketchId }, 'Sketch cache busted');
 };
 
 /**
@@ -87,7 +87,7 @@ export async function createSketch(req, res) {
       },
     });
   } catch (error) {
-    console.error('[Sketch] Create error:', error);
+    logger.error({ err: error, userId }, 'Failed to create sketch');
     return res.status(500).json({
       success: false,
       error: 'Failed to create sketch',
@@ -113,11 +113,11 @@ export async function listSketches(req, res) {
     // Check cache first
     const cached = sketchCache.get(cacheKey);
     if (cached) {
-      console.log(`[Sketch] Cache hit — list for user ${userId} page ${page}`);
+      logger.debug({ userId, page }, 'Sketch list cache hit');
       return res.json(cached);
     }
 
-    console.log(`[Sketch] Cache miss — fetching list for user ${userId} from DB`);
+    logger.debug({ userId, page }, 'Sketch list cache miss');
 
     const [sketches, total] = await Promise.all([
       Sketch.find({ userId })
@@ -152,7 +152,7 @@ export async function listSketches(req, res) {
 
     return res.json(response);
   } catch (error) {
-    console.error('[Sketch] List error:', error);
+    logger.error({ err: error, userId }, 'Failed to list sketches');
     return res.status(500).json({
       success: false,
       error: 'Failed to list sketches',
@@ -174,11 +174,11 @@ export async function getSketch(req, res) {
     const cacheKey = sketchKey(userId,id);
     const cached = sketchCache.get(cacheKey);
     if (cached) {
-      console.log(`[Sketch] Cache hit — single sketch ${id}`);
+      logger.debug({ userId, sketchId: id }, 'Single sketch cache hit');
       return res.json(cached);
     }
 
-    console.log(`[Sketch] Cache miss — fetching sketch ${id} from DB`);
+    logger.debug({ userId, sketchId: id }, 'Single sketch cache miss');
 
     const sketch = await Sketch.findOne({ _id: id, userId }).lean();
     if (!sketch) {
@@ -214,7 +214,7 @@ export async function getSketch(req, res) {
     sketchCache.set(cacheKey, response);
     return res.json(response);
   } catch (error) {
-    console.error('[Sketch] Get error:', error);
+    logger.error({ err: error, userId, sketchId: id }, 'Failed to get sketch');
     return res.status(500).json({
       success: false,
       error: 'Failed to get sketch',
@@ -294,7 +294,7 @@ export async function updateSketch(req, res) {
       },
     });
   } catch (error) {
-    console.error('[Sketch] Update error:', error);
+    logger.error({ err: error, userId, sketchId: id }, 'Failed to update sketch');
     return res.status(500).json({
       success: false,
       error: 'Failed to update sketch',
@@ -328,7 +328,7 @@ export async function deleteSketch(req, res) {
       message: 'Sketch deleted',
     });
   } catch (error) {
-    console.error('[Sketch] Delete error:', error);
+    logger.error({ err: error, userId, sketchId: id }, 'Failed to delete sketch');
     return res.status(500).json({
       success: false,
       error: 'Failed to delete sketch',
@@ -361,7 +361,7 @@ export async function getSketchSnapshot(req, res) {
 
     return res.json(JSON.parse(snapshotUrl));
   } catch (err) {
-    console.error('[Sketch] getSnapshot failed:', err);
+    logger.error({ err, userId, sketchId }, 'Failed to get sketch snapshot');
     res.status(500).json({ error: err.message });
   }
 }

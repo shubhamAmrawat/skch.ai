@@ -90,12 +90,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// ===================
-// Indexes
-// ===================
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
-userSchema.index({ createdAt: -1 });
+
 
 // ===================
 // Virtual for account lock status
