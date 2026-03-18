@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 /**
  * CONCEPT: Rate limiting has two key parameters:
@@ -21,7 +21,7 @@ export const aiGenerateLimit = rateLimit({
   keyGenerator: (req) => {
     // Use userId if authenticated, fall back to IP
     // This prevents bypass via multiple IPs
-    return req.userId?.toString() || req.ip;
+    return req.userId?.toString() || ipKeyGenerator(req);
   },
   handler: (req, res) => {
     console.warn(`[RateLimit] AI endpoint hit by ${req.userId || req.ip}`);
