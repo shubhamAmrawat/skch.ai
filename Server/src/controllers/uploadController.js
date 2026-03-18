@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import { cloudinary } from '../config/cloudinary.js';
+import { userCache } from '../config/userCache.js';
 
 /**
  * @route   POST /api/upload/avatar
@@ -51,6 +52,14 @@ export const uploadAvatar = async (req, res) => {
     // Update user avatar
     user.avatar = avatarUrl;
     await user.save();
+
+    // Invalidate cached user so subsequent /me calls return fresh avatar
+    try {
+      userCache.del(user._id.toString());
+    } catch (cacheError) {
+      console.error('[Upload] Failed to invalidate user cache after avatar upload:', cacheError);
+      // Non-fatal – continue response
+    }
 
     res.json({
       success: true,
