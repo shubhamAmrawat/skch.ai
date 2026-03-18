@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Client/public/favicon.svg" alt="sktch.ai Logo" width="80" height="80">
+  <img src="Client/public/codingg.png" alt="sktch.ai Logo" width="80" height="80">
 </p>
 
 <h1 align="center">sktch.ai</h1>
@@ -42,9 +42,6 @@
 - 🎯 **My Sketches Dashboard** - Organize, edit, delete, and export your saved sketches
 <!-- - 🌍 **Share Sketches** - Public sketch routes for sharing your creations -->
 
-## 🎬 Demo
-
-![sktch.ai Demo](https://via.placeholder.com/800x400?text=Demo+Screenshot)
 
 > Draw → Generate → Refine → Export
 
