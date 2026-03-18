@@ -241,12 +241,12 @@ export const googleAuth = async (req, res) => {
       if (user.email !== googleUser.email.toLowerCase()) {
         user.email = googleUser.email.toLowerCase();
       }
-      if (googleUser.name && user.name !== googleUser.name) {
-        user.name = googleUser.name;
-      }
-      if (googleUser.picture && user.avatar !== googleUser.picture) {
-        user.avatar = googleUser.picture;
-      }
+      // if (googleUser.name && user.name !== googleUser.name) {
+      //   user.name = googleUser.name;
+      // }
+      // if (googleUser.picture && user.avatar !== googleUser.picture) {
+      //   user.avatar = googleUser.picture;
+      // }
       user.lastLogin = new Date();
       await user.save();
     } else {
