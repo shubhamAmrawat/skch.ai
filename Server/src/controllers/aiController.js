@@ -127,7 +127,10 @@ export async function generateUIStream(req, res) {
       { role: 'system', content: (isTextIteration || isIterativeDrawing) ? ITERATION_PROMPT : SYSTEM_PROMPT },
     ];
     if (history && Array.isArray(history)) {
-      messages = messages.concat(history);
+      // Keep only last 4 messages (2 full turns) to control context cost
+      // Full history grows unboundedly — at turn 5 you're paying for 12k+ tokens of history
+      const trimmedHistory = history.slice(-4);
+      messages = messages.concat(trimmedHistory);
     }
     if (isTextIteration) {
       messages = messages.concat(buildIterationMessage(currentCode, feedback));
@@ -148,7 +151,7 @@ export async function generateUIStream(req, res) {
       const { system, messages: anthropicMessages } = toAnthropicFormat(messages);
       const stream = client.messages.stream({
         model,
-        max_tokens: 16384,
+        max_tokens: 4096,
         system,
         messages: anthropicMessages,
       });
@@ -170,9 +173,8 @@ export async function generateUIStream(req, res) {
       const client = getOpenAIClient();
       const stream = await client.chat.completions.create({
         model,
-        max_tokens: 16384,
+        max_tokens: 4096,
         temperature: 0.3,
-        top_p: 0.95,
         messages,
         stream: true,
       });
@@ -261,7 +263,10 @@ export async function generateUI(req, res) {
 
     // Add history if provided (for context in multi-turn conversations)
     if (history && Array.isArray(history)) {
-      messages = messages.concat(history);
+      // Keep only last 4 messages (2 full turns) to control context cost
+      // Full history grows unboundedly — at turn 5 you're paying for 12k+ tokens of history
+      const trimmedHistory = history.slice(-4);
+      messages = messages.concat(trimmedHistory);
     }
 
     // Add the appropriate user message
@@ -284,7 +289,7 @@ export async function generateUI(req, res) {
       const { system, messages: anthropicMessages } = toAnthropicFormat(messages);
       const response = await client.messages.create({
         model,
-        max_tokens: 16384,
+        max_tokens: 4096,
         system,
         messages: anthropicMessages,
       });
@@ -301,9 +306,8 @@ export async function generateUI(req, res) {
       const client = getOpenAIClient();
       const completion = await client.chat.completions.create({
         model,
-        max_tokens: 16384,
+        max_tokens: 4096,
         temperature: 0.3,
-        top_p: 0.95,
         messages,
       });
       generatedCode = completion.choices[0]?.message?.content;
