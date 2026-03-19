@@ -152,11 +152,11 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
 
           {/* Model selector */}
           {selectedModel && onModelChange && (
-            <div className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0 p-1 border border-slate-200  rounded-lg">
               <button
                 type="button"
                 onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-white  transition-all"
                 title="Select AI model"
               >
                 <span className="truncate max-w-[100px]">{getModelLabel(selectedModel)}</span>
