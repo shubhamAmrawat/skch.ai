@@ -1,4 +1,5 @@
-import { Eye, Code2, Send, Loader2, MessageSquare, User, Bot, Sparkles, Copy, Check } from 'lucide-react';
+import { Eye, Code2, Send, Loader2, MessageSquare, User, Bot, Sparkles, Copy, Check, Mic, MicOff } from 'lucide-react';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { useState, useRef, useEffect } from 'react';
 import { LivePreview } from './LivePreview';
 import { ResizableSplitPane } from './ResizableSplitPane';
@@ -261,6 +262,92 @@ interface ChatViewProps {
 function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, isGenerating, isIterating }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const {
+    interimTranscript,
+    finalTranscript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
+  useEffect(() => {
+    console.log('[Speech] listening:', listening, 'interim:', interimTranscript, 'final:', finalTranscript, 'supported:', browserSupportsSpeechRecognition);
+  }, [listening, interimTranscript, finalTranscript, browserSupportsSpeechRecognition]);
+  // Use interimTranscript for real-time display while speaking
+  // Use finalTranscript to accumulate confirmed speech
+  const accumulatedRef = useRef('');
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync transcript into inputMessage while listening
+  useEffect(() => {
+    if (!listening) return;
+    if (interimTranscript) {
+      // Show accumulated + current interim in real time
+      setInputMessage(
+        accumulatedRef.current
+          ? `${accumulatedRef.current} ${interimTranscript}`
+          : interimTranscript
+      );
+    }
+  }, [interimTranscript, listening, setInputMessage]);
+
+  useEffect(() => {
+    if (!listening) return;
+    if (finalTranscript) {
+      // Commit final transcript to accumulated
+      accumulatedRef.current = accumulatedRef.current
+        ? `${accumulatedRef.current} ${finalTranscript}`
+        : finalTranscript;
+      setInputMessage(accumulatedRef.current);
+    }
+  }, [finalTranscript, listening, setInputMessage]);
+
+  // Reset accumulated when user manually clears input
+  useEffect(() => {
+    if (!inputMessage) {
+      accumulatedRef.current = '';
+    }
+  }, [inputMessage]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 100) + 'px';
+  }, [inputMessage]);
+
+  const toggleRecording = () => {
+    if (listening) {
+      SpeechRecognition.stopListening();
+      // Keep whatever was transcribed in the input
+      // Don't reset transcript yet — user may want to edit it
+      return;
+    }
+    accumulatedRef.current = inputMessage.trim(); // preserve existing typed text
+    resetTranscript();
+    SpeechRecognition.startListening({ 
+      continuous: true,
+      language: 'en-US',
+    });
+  };
+
+  const handleSend = () => {
+    onSend();
+    resetTranscript();
+    SpeechRecognition.stopListening();
+  };
+
+  // Updated handleKeyDown to work with textarea
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+      return;
+    }
+    onKeyDown(e as unknown as React.KeyboardEvent);
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isIterating]);
@@ -268,7 +355,7 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
   return (
     <div className="h-full flex flex-col">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2 space-y-3">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-3">
@@ -345,25 +432,104 @@ function ChatView({ messages, inputMessage, setInputMessage, onSend, onKeyDown, 
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-slate-200 bg-white">
-        <div className="relative">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder="Describe what to change..."
-            disabled={isGenerating}
-            className="w-full px-4 py-2.5 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
-          />
-          <button
-            onClick={onSend}
-            disabled={!inputMessage.trim() || isGenerating}
-            title="Send"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-200 disabled:cursor-not-allowed transition-colors"
-          >
-            <Send className="w-3.5 h-3.5 text-white" />
-          </button>
+      {/* Floating input — sits at bottom with padding, no border-top */}
+      <div className="px-3 pb-3 pt-2">
+        {/* Glow wrapper */}
+        <div className={`
+          relative rounded-2xl transition-all duration-300
+          ${listening 
+            ? 'shadow-[0_0_0_1.5px_rgba(239,68,68,0.4),0_0_20px_rgba(239,68,68,0.15)]' 
+            : isGenerating
+              ? 'shadow-[0_0_0_1px_rgba(148,163,184,0.3)]'
+              : 'shadow-[0_0_0_1px_rgba(148,163,184,0.25),0_4px_16px_rgba(0,0,0,0.06)] focus-within:shadow-[0_0_0_1.5px_rgba(99,102,241,0.4),0_0_20px_rgba(99,102,241,0.12),0_4px_16px_rgba(0,0,0,0.08)]'
+          }
+        `}>
+          {/* Gradient border effect */}
+          <div className={`
+            absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none
+            focus-within:opacity-100
+            bg-gradient-to-r from-indigo-500/20 via-purple-500/10 to-indigo-500/20
+          `} />
+          
+          {/* Inner container */}
+          <div className={`
+            relative flex flex-col bg-white rounded-2xl overflow-hidden
+            ${isGenerating ? 'opacity-60' : ''}
+          `}>
+            {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={handleTextareaKeyDown}
+              placeholder="Describe what to change..."
+              disabled={isGenerating}
+              rows={1}
+              className="w-full px-4 pt-2.5 pb-0 bg-transparent resize-none text-sm text-slate-900 placeholder-slate-400 focus:outline-none disabled:cursor-not-allowed leading-relaxed"
+              style={{ minHeight: '42px', maxHeight: '70px' }}
+            />
+
+            {/* Toolbar */}
+            <div className="flex items-center justify-between px-2.5 pb-2">
+              {/* Left: mic */}
+              <div className="flex items-center gap-1.5">
+                {browserSupportsSpeechRecognition && (
+                  <button
+                    onClick={toggleRecording}
+                    disabled={isGenerating}
+                    title={listening ? 'Stop recording' : 'Voice input'}
+                    className={`
+                      flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all text-xs font-medium
+                      ${listening
+                        ? 'text-red-500 bg-red-50'
+                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                      }
+                    `}
+                  >
+                    {listening ? (
+                      <>
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                        </span>
+                        <MicOff className="w-3 h-3" />
+                        <span>Listening</span>
+                      </>
+                    ) : (
+                      <Mic className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Right: hint + send */}
+              <div className="flex items-center gap-1.5">
+                {inputMessage.trim() && !isGenerating && (
+                  <span className="text-[10px] text-slate-300 hidden sm:block select-none">
+                    ⇧↵ newline
+                  </span>
+                )}
+                <button
+                  onClick={handleSend}
+                  disabled={!inputMessage.trim() || isGenerating}
+                  title="Send"
+                  className={`
+                    p-1.5 rounded-xl transition-all duration-150
+                    ${inputMessage.trim() && !isGenerating
+                      ? 'bg-indigo-600 hover:bg-indigo-500 shadow-sm shadow-indigo-500/20'
+                      : 'bg-slate-100 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                  ) : (
+                    <Send className={`w-3.5 h-3.5 ${inputMessage.trim() ? 'text-white' : 'text-slate-300'}`} />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
