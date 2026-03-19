@@ -35,7 +35,15 @@ app.get("/health", (req, res) => {
   res.status(200).send("Server is alive");
 });
 
-app.use(compression());
+app.use(compression({
+  filter: (req, res) => {
+    // Don't compress SSE streams — compression buffers chunks, breaking streaming
+    if (req.path === '/generate' || req.headers.accept === 'text/event-stream') {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
+}));
 // ===================
 // CORS Configuration
 // ===================

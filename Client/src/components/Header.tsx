@@ -118,34 +118,37 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
           <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
 
           {/* Tabs - only visible when UI has been generated */}
-          {generatedCode && (
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-shrink-0">
-              <TabButton
-                active={activeTab === 'canvas'}
-                onClick={() => onTabChange('canvas')}
-                icon={<Pencil className="w-3.5 h-3.5" />}
-                label="Canvas"
-              />
-              <TabButton
-                active={activeTab === 'preview'}
-                onClick={() => onTabChange('preview')}
-                icon={<Eye className="w-3.5 h-3.5" />}
-                label="Preview"
-              />
-              <TabButton
-                active={activeTab === 'code'}
-                onClick={() => onTabChange('code')}
-                icon={<Code2 className="w-3.5 h-3.5" />}
-                label="Code"
-              />
-              <TabButton
-                active={activeTab === 'chat'}
-                onClick={() => onTabChange('chat')}
-                icon={<MessageSquare className="w-3.5 h-3.5" />}
-                label="Refine"
-              />
-            </div>
-          )}
+
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-shrink-0">
+            <TabButton
+              active={activeTab === 'canvas'}
+              onClick={() => onTabChange('canvas')}
+              icon={<Pencil className="w-3.5 h-3.5" />}
+              label="Canvas"
+              disabled={false}
+            />
+            <TabButton
+              active={activeTab === 'preview'}
+              onClick={() => onTabChange('preview')}
+              icon={<Eye className="w-3.5 h-3.5" />}
+              label="Preview"
+              disabled={!generatedCode && !isGenerating}
+            />
+            <TabButton
+              active={activeTab === 'code'}
+              onClick={() => onTabChange('code')}
+              icon={<Code2 className="w-3.5 h-3.5" />}
+              label="Code"
+              disabled={!generatedCode && !isGenerating}
+            />
+            <TabButton
+              active={activeTab === 'chat'}
+              onClick={() => onTabChange('chat')}
+              icon={<MessageSquare className="w-3.5 h-3.5" />}
+              label="Refine"
+              disabled={!generatedCode && !isGenerating}
+            />
+          </div>
 
           {/* Model selector */}
           {selectedModel && onModelChange && (
@@ -174,11 +177,10 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
                           onModelChange(opt.value);
                           setIsModelMenuOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2.5 text-sm transition-all ${
-                          selectedModel === opt.value
+                        className={`w-full text-left px-3 py-2.5 text-sm transition-all ${selectedModel === opt.value
                             ? 'bg-indigo-50 text-indigo-700 font-medium'
                             : 'text-slate-700 hover:bg-slate-50'
-                        }`}
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -281,11 +283,10 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
                                 <button
                                   type="button"
                                   onClick={() => onVisibilityChange('private')}
-                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                                    visibility === 'private'
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${visibility === 'private'
                                       ? 'bg-slate-100 text-slate-900 border-2 border-slate-300'
                                       : 'text-slate-600 hover:bg-slate-50 border-2 border-transparent'
-                                  }`}
+                                    }`}
                                 >
                                   <Lock className="w-4 h-4" />
                                   Private
@@ -293,11 +294,10 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
                                 <button
                                   type="button"
                                   onClick={() => onVisibilityChange('public')}
-                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                                    visibility === 'public'
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${visibility === 'public'
                                       ? 'bg-indigo-50 text-indigo-700 border-2 border-indigo-300'
                                       : 'text-slate-600 hover:bg-slate-50 border-2 border-transparent'
-                                  }`}
+                                    }`}
                                 >
                                   <Globe className="w-4 h-4" />
                                   Public
@@ -570,20 +570,25 @@ function TabButton({
   onClick,
   icon,
   label,
+  disabled,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-        active
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      title={disabled ? 'Generate a UI first' : undefined}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${active
           ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-      }`}
+          : disabled
+            ? 'text-slate-300 cursor-not-allowed'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+        }`}
     >
       {icon}
       {label}

@@ -151,7 +151,7 @@ export function SketchApp() {
   }, [state.activeTab, showSplitView]);
 
   const handleGenerate = useCallback(async (editor: ExcalidrawImperativeAPI | null) => {
-    setState((prev) => ({ ...prev, isGenerating: true, activeTab: 'chat' }));
+    setState((prev) => ({ ...prev, isGenerating: true, activeTab: 'code' }));
 
     try {
       let imageBase64: string | null = null;
