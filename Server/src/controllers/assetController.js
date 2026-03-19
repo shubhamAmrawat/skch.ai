@@ -11,17 +11,41 @@ export const uploadSketchAssets = async (req, res) => {
     const { sketchId } = req.params;
     const result = {};
 
-    if (req.files?.thumbnail) {
-      const file = req.files.thumbnail;
+    // With multer.fields(), each entry is usually an array of files.
+    const thumbnailFile =
+      Array.isArray(req.files?.thumbnail) ? req.files.thumbnail[0] : req.files?.thumbnail;
+    const snapshotFile =
+      Array.isArray(req.files?.snapshot) ? req.files.snapshot[0] : req.files?.snapshot;
+
+    // When the client sends no files, don't report success.
+    if (!thumbnailFile && !snapshotFile) {
+      return res.status(400).json({
+        success: false,
+        error: 'No assets provided',
+        message: 'Expected multipart fields: thumbnail (PNG) and/or snapshot (JSON)',
+      });
+    }
+
+    if (thumbnailFile) {
+      // multer.memoryStorage provides `buffer`; other upload systems may use `data`
+      const buffer = thumbnailFile.buffer ?? thumbnailFile.data;
+      if (!buffer) {
+        throw new Error('Thumbnail file buffer missing');
+      }
+
       const key = `sketches/${sketchId}/thumbnail.png`;
-      const url = await uploadToR2(key, file.data, 'image/png');
+      const url = await uploadToR2(key, buffer, 'image/png');
       result.thumbnailUrl = url;
     }
 
-    if (req.files?.snapshot) {
-      const file = req.files.snapshot;
+    if (snapshotFile) {
+      const buffer = snapshotFile.buffer ?? snapshotFile.data;
+      if (!buffer) {
+        throw new Error('Snapshot file buffer missing');
+      }
+
       const key = `sketches/${sketchId}/snapshot.json`;
-      const url = await uploadToR2(key, file.data, 'application/json');
+      const url = await uploadToR2(key, buffer, 'application/json');
       result.snapshotUrl = url;
     }
 

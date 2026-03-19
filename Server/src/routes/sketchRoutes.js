@@ -10,6 +10,7 @@ import {
 } from '../controllers/sketchController.js';
 import { uploadSketchAssets } from '../controllers/assetController.js';
 import { createSketchValidation, updateSketchValidation, validateId, validateSketchId } from '../middleware/sketchValidation.js';
+import multer from 'multer';
 
 const router = Router();
 
@@ -27,7 +28,20 @@ router.get('/:id', validateId, getSketch);
 
 router.put('/:id', validateId , updateSketchValidation, updateSketch);
 
-router.post('/:sketchId/assets',validateSketchId, uploadSketchAssets);
+// Handle multipart uploads for sketch assets (thumbnail + snapshot).
+// We use memoryStorage so the controller can stream the files into R2.
+const uploadSketchAssetFiles = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    // Snapshot JSON can get large depending on canvas complexity.
+    fileSize: 20 * 1024 * 1024, // 20MB per file
+  },
+}).fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'snapshot', maxCount: 1 },
+]);
+
+router.post('/:sketchId/assets', validateSketchId, uploadSketchAssetFiles, uploadSketchAssets);
 
 router.delete('/:id',validateId, deleteSketch);
 
