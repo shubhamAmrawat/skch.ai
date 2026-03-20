@@ -103,10 +103,10 @@ export function LandingHeader() {
                     />
                     <div className="absolute top-full mt-2 right-0 w-56 bg-white backdrop-blur-xl border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 overflow-hidden z-20">
                       {/* User Info */}
-                      <div className="p-4 border-b border-slate-200">
+                      {/* <div className="p-4 border-b border-slate-200">
                         <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
                         <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                      </div>
+                      </div> */}
 
                       {/* Menu Items */}
                       <div className="p-1.5">
@@ -121,15 +121,15 @@ export function LandingHeader() {
                           <span className="text-sm">Profile</span>
                         </button>
 
-                        <button
+                        {/* <button
                           onClick={handleStartSketching}
                           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
                         >
                           <Sparkles className="w-4 h-4 text-indigo-400" />
                           <span className="text-sm">Start Sketching</span>
-                        </button>
+                        </button> */}
 
-                        <button
+                        {/* <button
                           onClick={() => {
                             setIsUserMenuOpen(false);
                             navigate('/sketches');
@@ -138,9 +138,9 @@ export function LandingHeader() {
                         >
                           <FolderOpen className="w-4 h-4" />
                           <span className="text-sm">My Sketches</span>
-                        </button>
+                        </button> */}
 
-                        <button
+                        {/* <button
                           onClick={() => {
                             setIsUserMenuOpen(false);
                             navigate('/explore');
@@ -149,7 +149,7 @@ export function LandingHeader() {
                         >
                           <Globe className="w-4 h-4" />
                           <span className="text-sm">Explore</span>
-                        </button>
+                        </button> */}
 
                         <div className="my-1 h-px bg-slate-200" />
 
