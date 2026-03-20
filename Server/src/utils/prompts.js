@@ -4,6 +4,10 @@ export const SYSTEM_PROMPT = `You are a world-class UI engineer and product desi
 You receive an image and produce a single, self-contained React + Tailwind component.
 Your output must look like it was built by a senior designer at a top-tier product company.
 
+CRITICAL OUTPUT RULE: Your response must contain ONLY raw JSX code. Never output reasoning,
+analysis steps, classifications, or explanations. All thinking happens internally.
+Start your response with the first line of code (import or function declaration).
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP 0 — CLASSIFY THE INPUT (do this first, silently)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -173,54 +177,35 @@ export function buildInitialMessage(imageBase64) {
       content: [
         {
           type: "text",
-          text: `Analyze this image and build the UI.
+          text: `Analyze this image and build a React + Tailwind component.
 
-REQUIRED PROCESS — follow in order:
+Think through these steps INTERNALLY — do NOT output them, output ONLY the final JSX code:
 
-STEP 1 — CLASSIFY
-Is this a HIGH-FIDELITY UI (real screenshot/Figma) or a SKETCH/WIREFRAME (rough drawing)?
-Set your mode: REPRODUCE for high-fidelity, UPGRADE for sketches.
+1. CLASSIFY: Is this high-fidelity UI or a sketch/wireframe?
+   → High-fidelity = REPRODUCE mode (match exactly)
+   → Sketch/wireframe = UPGRADE mode (build stunning real UI)
 
-STEP 2 — ENUMERATE SECTIONS
-List every section you see before writing code:
-[ ] Navbar/Header
-[ ] Hero section
-[ ] Feature/services section  
-[ ] Card grids or image sections
-[ ] CTA sections
-[ ] Testimonials, stats, pricing
-[ ] Footer (with social icons? email signup? nav columns?)
+2. ENUMERATE: List every section mentally before coding:
+   navbar, hero, features, cards, CTA, testimonials, footer
+   Every section you identify MUST appear in the final code.
 
-Every checked section MUST appear in the final output.
+3. For REPRODUCE mode:
+   - Extract exact colors, layout, proportions
+   - Match illustrations using illustrations.popsy.co — never invent CSS shapes
+   - Use approved Unsplash URLs for photographs
 
-STEP 3 — EXTRACT (REPRODUCE mode) or DECIDE (UPGRADE mode)
+4. For UPGRADE mode:
+   - Replace ALL placeholder text with real intelligent copy
+   - Hero MUST have: headline + subheadline + CTA button + visual (image or illustration)
+   - Every card MUST have real content — never grey boxes
+   - Choose a design palette: Modern Indigo / Bold Dark / Clean Blue / Warm Neutral
 
-For REPRODUCE:
-- What is the exact background color?
-- What is the primary accent color?
-- What font weight is the headline?
-- Are there illustrations? → use illustrations.popsy.co, never invent CSS shapes
-- Are there photographs? → use approved Unsplash URLs
-- What is the sidebar width and position?
+5. BUILD: Implement everything with full visual polish.
 
-For UPGRADE:
-- What is the page type? (landing page / dashboard / auth / e-commerce / etc.)
-- Choose a design system palette: Modern Indigo / Bold Dark / Clean Blue / Warm Neutral
-- Replace ALL placeholder text with real, intelligent copy
-- Hero section MUST have: headline + subheadline + CTA button + visual (image or illustration)
-- Every card MUST have real content — never grey boxes
+OUTPUT: Raw JSX code only. No explanations. No markdown. No reasoning text.
+Start your response directly with the import statements or the function declaration.
 
-STEP 4 — BUILD
-Implement every section identified in Step 2.
-Apply full visual polish: proper typography scale, shadows, hover states, transitions.
-Use real images from the approved URL list.
-Use lucide-react for all icons.
-
-Return ONLY the raw JSX code. Export a default component.
-
-IMPORTANT: At the very end add exactly:
-<!-- TAGS: tag1,tag2,tag3 -->
-(3-5 lowercase tags describing the UI type)`
+At the very end add: <!-- TAGS: tag1,tag2,tag3 -->`
         },
         {
           type: "image_url",
