@@ -12,6 +12,7 @@ import { useToast } from '../context/ToastContext';
 import { generateFullPageHTML } from '../utils/previewHtml';
 import { exportToBlob } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import { Sparkles } from 'lucide-react';
 
 // Tab type
 type TabType = 'canvas' | 'preview' | 'code' | 'chat';
@@ -26,6 +27,7 @@ export interface ConversationEntry {
 // App state interface
 interface AppState {
   isGenerating: boolean;
+  isLoadingSketch: boolean;
   generatedCode: string;
   activeTab: TabType;
   selectedModel: string;
@@ -37,6 +39,7 @@ interface AppState {
   tags: string[];
   suggestedTags: string[];
   isSaving: boolean;
+  
 }
 
 export function SketchApp() {
@@ -54,6 +57,7 @@ export function SketchApp() {
 
   const [state, setState] = useState<AppState>({
     isGenerating: false,
+    isLoadingSketch: !!sketchIdParam,
     generatedCode: '',
     activeTab: 'canvas',
     selectedModel: 'gpt-4o',
@@ -76,7 +80,7 @@ export function SketchApp() {
     prevSketchIdRef.current = sketchIdParam;
 
     if (isNewSketch) {
-      setState((prev) => ({ ...prev, tldrawSnapshot: null }));
+      setState((prev) => ({ ...prev, tldrawSnapshot: null, isLoadingSketch: true }));
     }
 
     let cancelled = false;
@@ -108,6 +112,7 @@ export function SketchApp() {
 
         setState((prev) => ({
           ...prev,
+          isLoadingSketch: false,
           generatedCode: sketch.code,
           currentSketchId: sketch.id,
           currentSketchTitle: sketch.title,
@@ -120,6 +125,7 @@ export function SketchApp() {
       })
       .catch((err) => {
         if (!cancelled) {
+          setState((prev) => ({ ...prev, isLoadingSketch: false }));
           addToast('error', err instanceof Error ? err.message : 'Failed to load sketch');
         }
       });
@@ -512,6 +518,18 @@ export function SketchApp() {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+       {/* Sketch loading overlay — shown while fetching sketch data from server */}
+       {state.isLoadingSketch && (
+        <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col items-center justify-center gap-4">
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
+            <div className="absolute inset-3 rounded-full bg-white border border-slate-200 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header with integrated sketch controls */}
       <Header
         selectedModel={state.selectedModel}
@@ -553,6 +571,7 @@ export function SketchApp() {
             collapsedSize={0}
             className="sketch-left-pane"
           >
+            
             <WhiteboardContainer
               key={sketchIdParam ?? 'new'}
               isGenerating={state.isGenerating}
