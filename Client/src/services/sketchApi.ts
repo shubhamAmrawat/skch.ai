@@ -107,7 +107,12 @@ export interface GetSketchResponse {
   error?: string;
   message?: string;
 }
-
+export interface SketchStats {
+  totalSketches: number;
+  totalPublic: number;
+  totalLikes: number;
+  totalViews: number;
+}
 // ===================
 // Public Sketches Types
 // ===================
@@ -117,7 +122,14 @@ export interface PublicSketchAuthor {
   name: string;
   avatar?: string | null;
 }
-
+export async function getSketchStats(): Promise<{ success: boolean; data?: SketchStats }> {
+  const response = await authApiFetch('/sketches/stats');
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to load stats');
+  }
+  return data;
+}
 export interface PublicSketch {
   id: string;
   title: string;

@@ -7,6 +7,7 @@ import {
   getSketchSnapshot,
   updateSketch,
   deleteSketch,
+  getSketchStats,
 } from '../controllers/sketchController.js';
 import { uploadSketchAssets } from '../controllers/assetController.js';
 import { createSketchValidation, updateSketchValidation, validateId, validateSketchId } from '../middleware/sketchValidation.js';
@@ -17,7 +18,7 @@ const router = Router();
 // All sketch routes require authentication
 router.use(authenticate);
 
-
+router.get('/stats', getSketchStats);
 router.post('/',createSketchValidation ,createSketch);
 
 router.get('/', listSketches);

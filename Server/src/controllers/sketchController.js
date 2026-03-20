@@ -365,3 +365,56 @@ export async function getSketchSnapshot(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+/**
+ * Get aggregated stats for the current user's public sketches
+ * GET /api/sketches/stats
+ */
+export async function getSketchStats(req, res) {
+  try {
+    const userId = req.userId;
+
+    const cacheKey = `sketches:stats:${userId}`;
+    const cached = sketchCache.get(cacheKey);
+    if (cached) {
+      logger.debug({ userId }, 'Sketch stats cache hit');
+      return res.json(cached);
+    }
+
+    const [aggregation, totalSketches] = await Promise.all([
+      Sketch.aggregate([
+        { $match: { userId: userId.toString ? userId : String(userId), visibility: 'public' } },
+        {
+          $group: {
+            _id: null,
+            totalLikes: { $sum: '$likesCount' },
+            totalViews: { $sum: '$views' },
+            totalPublic: { $sum: 1 },
+          },
+        },
+      ]),
+      Sketch.countDocuments({ userId }),
+    ]);
+
+    const agg = aggregation[0] ?? { totalLikes: 0, totalViews: 0, totalPublic: 0 };
+
+    const response = {
+      success: true,
+      data: {
+        totalSketches,
+        totalPublic: agg.totalPublic,
+        totalLikes: agg.totalLikes,
+        totalViews: agg.totalViews,
+      },
+    };
+
+    sketchCache.set(cacheKey, response, 120); // cache for 2 minutes
+    return res.json(response);
+  } catch (error) {
+    logger.error({ err: error, userId: req.userId }, 'Failed to get sketch stats');
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get sketch stats',
+      message: error.message,
+    });
+  }
+}
