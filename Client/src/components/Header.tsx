@@ -24,8 +24,8 @@ import { useAuth } from '../hooks/useAuth';
 type TabType = 'canvas' | 'preview' | 'code' | 'chat';
 
 const MODEL_OPTIONS = [
-  { value: 'gpt-4o', label: 'GPT-4o' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+  { value: 'gpt-4.1', label: 'GPT-4.1' },
+  { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
   { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
