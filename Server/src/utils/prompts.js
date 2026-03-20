@@ -150,9 +150,42 @@ Hero / product photos:
 
 Avatars: https://i.pravatar.cc/100?img=32 (use img=1 to 70 for variety)
 Cards/general: https://picsum.photos/600/400?random=1 (change the number for variety)
-Illustrations: https://illustrations.popsy.co/blue/product-launch.svg
-               https://illustrations.popsy.co/blue/mobile-ui.svg
-
+Illustrations — pick the one that best fits the page theme, vary across generations:
+  Blue theme:
+    https://illustrations.popsy.co/blue/product-launch.svg
+    https://illustrations.popsy.co/blue/mobile-ui.svg
+    https://illustrations.popsy.co/blue/work-from-home.svg
+    https://illustrations.popsy.co/blue/remote-work.svg
+    https://illustrations.popsy.co/blue/team-work.svg
+    https://illustrations.popsy.co/blue/video-call.svg
+    https://illustrations.popsy.co/blue/woman-with-laptop.svg
+    https://illustrations.popsy.co/blue/web-search.svg
+  Purple theme:
+    https://illustrations.popsy.co/purple/product-launch.svg
+    https://illustrations.popsy.co/purple/work-from-home.svg
+    https://illustrations.popsy.co/purple/team-work.svg
+    https://illustrations.popsy.co/purple/woman-with-laptop.svg
+  Amber theme:
+    https://illustrations.popsy.co/amber/product-launch.svg
+    https://illustrations.popsy.co/amber/work-from-home.svg
+    https://illustrations.popsy.co/amber/team-work.svg
+  Gray theme:
+    https://illustrations.popsy.co/gray/product-launch.svg
+    https://illustrations.popsy.co/gray/work-from-home.svg
+    https://illustrations.popsy.co/gray/team-work.svg
+    
+ILLUSTRATION SELECTION RULE: Match theme color to the chosen design palette:
+  Modern Indigo → blue or purple theme illustrations
+  Bold Dark → gray theme illustrations
+  Clean Blue → blue theme illustrations
+  Warm Neutral → amber theme illustrations
+  
+NEVER use the same illustration for every generation — vary based on page type:
+  productivity/SaaS → work-from-home or woman-with-laptop
+  team/collaboration → team-work or video-call
+  launch/product → product-launch
+  developer tool → web-search or remote-work
+  
 NEVER use via.placeholder.com — it fails with ERR_NAME_NOT_RESOLVED.
 NEVER fabricate Unsplash photo IDs — only use the exact URLs above.
 
@@ -299,6 +332,71 @@ At the very end add:
               ? imageBase64
               : `data:image/png;base64,${imageBase64}`,
             detail: "auto",
+          },
+        },
+      ],
+    },
+  ];
+}
+
+/**
+ * Builds the prompt for Step 1 analysis — used with GPT-4o Mini
+ * Returns structured JSON describing the image layout, type, and components
+ * This is intentionally cheap and fast — no code generation
+ */
+export function buildAnalysisMessage(imageBase64) {
+  return [
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `Analyze this UI image and return a JSON object describing it.
+Return ONLY valid JSON — no markdown, no explanation, no code fences.
+
+{
+  "type": "high-fidelity" | "sketch",
+  "pageType": "landing" | "dashboard" | "auth" | "ecommerce" | "saas" | "portfolio" | "other",
+  "layout": {
+    "hasSidebar": boolean,
+    "sidebarSide": "left" | "right" | null,
+    "sidebarStyle": "wide-labels" | "icon-only" | null,
+    "hasTopHeader": boolean,
+    "columnCount": number,
+    "hasRightPanel": boolean
+  },
+  "colors": {
+    "background": "describe the main bg color e.g. white, slate-50, gray-950",
+    "accent": "describe primary accent e.g. blue-600, indigo-500, violet-400",
+    "cardBackground": "describe card bg e.g. white, slate-100, gray-900",
+    "textPrimary": "near-black | white | other",
+    "hasGradients": boolean
+  },
+  "sections": ["navbar", "hero", "features", "cards", "cta", "testimonials", "stats", "footer"],
+  "heroDetails": {
+    "hasIllustration": boolean,
+    "hasPhoto": boolean,
+    "illustrationStyle": "geometric" | "3d" | "abstract" | "cartoon" | null,
+    "isTransparentBackground": boolean
+  },
+  "cardDetails": {
+    "hasImageCards": boolean,
+    "hasFeatureCards": boolean,
+    "hasStatsCards": boolean,
+    "cardCount": number
+  },
+  "hasFooter": boolean,
+  "hasEmailSignup": boolean,
+  "complexity": "simple" | "medium" | "complex"
+}`
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: imageBase64.startsWith("data:")
+              ? imageBase64
+              : `data:image/png;base64,${imageBase64}`,
+            detail: "low",
           },
         },
       ],

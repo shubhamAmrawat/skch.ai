@@ -151,7 +151,7 @@ export function SketchApp() {
   }, [state.activeTab, showSplitView]);
 
   const handleGenerate = useCallback(async (editor: ExcalidrawImperativeAPI | null) => {
-    setState((prev) => ({ ...prev, isGenerating: true, activeTab: 'code' }));
+    setState((prev) => ({ ...prev, isGenerating: true, activeTab: 'preview' }));
 
     try {
       let imageBase64: string | null = null;
@@ -215,7 +215,11 @@ export function SketchApp() {
         {
           onDelta: (chunk) => {
             accumulatedCode += chunk;
-            setState((prev) => ({ ...prev, generatedCode: accumulatedCode }));
+            setState((prev) => ({
+              ...prev,
+              generatedCode: accumulatedCode,
+              activeTab: prev.activeTab === 'preview' ? 'code' : prev.activeTab,
+            }));
           },
           onDone: (result) => {
             const code = result.code || '';

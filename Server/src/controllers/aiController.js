@@ -6,7 +6,8 @@ import {
   ITERATION_PROMPT,
   buildInitialMessage,
   buildIterationMessage,
-  buildRegenerateFromDrawingMessage
+  buildRegenerateFromDrawingMessage,
+  buildAnalysisMessage
 } from '../utils/prompts.js';
 
 // Initialize clients lazily to avoid startup errors
@@ -146,6 +147,82 @@ function sendSSE(res, data) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
+// Add this after the sendSSE function and before generateUIStream
+
+/**
+ * Step 1 of the chain: analyze the image using GPT-4o Mini
+ * Returns structured JSON describing layout, type, sections, colors
+ * Uses GPT-4o Mini always — cheap, fast, sufficient for analysis
+ * Falls back gracefully if analysis fails — generation continues without it
+ */
+async function analyzeImage(imageBase64) {
+  try {
+    const client = getOpenAIClient();
+    const messages = buildAnalysisMessage(imageBase64);
+
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 500,
+      temperature: 0,
+      messages,
+    });
+
+    const raw = completion.choices[0]?.message?.content || '';
+    // Strip any accidental markdown fences
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const analysis = JSON.parse(cleaned);
+    console.log('[AI] Image analysis complete:', JSON.stringify(analysis));
+    return analysis;
+  } catch (err) {
+    // Analysis failure is non-fatal — generation continues without it
+    console.warn('[AI] Image analysis failed, continuing without context:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Injects analysis context into the buildInitialMessage output
+ * Adds a structured context block before the existing instructions
+ */
+function injectAnalysisContext(messages, analysis) {
+  if (!analysis) return messages;
+
+  const contextBlock = `CONTEXT FROM PRE-ANALYSIS (use this as ground truth):
+- Type: ${analysis.type === 'sketch' ? 'SKETCH → use UPGRADE mode' : 'HIGH-FIDELITY → use REPRODUCE mode'}
+- Page type: ${analysis.pageType}
+- Layout: ${analysis.layout.hasSidebar ? `sidebar on ${analysis.layout.sidebarSide} (${analysis.layout.sidebarStyle})` : 'no sidebar'}, ${analysis.layout.columnCount} columns${analysis.layout.hasRightPanel ? ', has right panel' : ''}
+- Colors: background=${analysis.colors.background}, accent=${analysis.colors.accent}, cards=${analysis.colors.cardBackground}
+- Sections present: ${analysis.sections.join(', ')}
+- Hero: ${analysis.heroDetails.hasIllustration ? `has ${analysis.heroDetails.illustrationStyle} illustration` : analysis.heroDetails.hasPhoto ? 'has photo' : 'no visual'}${analysis.heroDetails.isTransparentBackground ? ' — transparent bg, replace with solid color' : ''}
+- Cards: ${[
+    analysis.cardDetails.hasImageCards && 'image cards',
+    analysis.cardDetails.hasFeatureCards && 'feature cards',
+    analysis.cardDetails.hasStatsCards && 'stats cards',
+  ].filter(Boolean).join(', ') || 'none detected'} (count: ${analysis.cardDetails.cardCount})
+- Footer: ${analysis.hasFooter ? 'yes' : 'no'}${analysis.hasEmailSignup ? ', has email signup' : ''}
+- Complexity: ${analysis.complexity}
+
+Build accordingly. The analysis above is your blueprint — trust it over your own image reading.`;
+
+  // Find the user message with the image and inject context before the existing instructions
+  return messages.map(msg => {
+    if (msg.role === 'user' && Array.isArray(msg.content)) {
+      return {
+        ...msg,
+        content: msg.content.map(block => {
+          if (block.type === 'text') {
+            return {
+              ...block,
+              text: contextBlock + '\n\n' + block.text,
+            };
+          }
+          return block;
+        }),
+      };
+    }
+    return msg;
+  });
+}
 /**
  * Stream UI code generation (SSE)
  * POST /api/generate with stream: true in body
@@ -193,7 +270,13 @@ export async function generateUIStream(req, res) {
     } else if (isIterativeDrawing) {
       messages = messages.concat(buildRegenerateFromDrawingMessage(image, currentCode));
     } else {
-      messages = messages.concat(buildInitialMessage(image));
+      // Step 1: analyze image (cheap, fast, GPT-4o Mini always)
+      // Only runs on initial generation, not iterations or iterative drawing
+      sendSSE(res, { type: 'analyzing' });
+      const analysis = await analyzeImage(image);
+      const initialMessages = buildInitialMessage(image);
+      const enrichedMessages = injectAnalysisContext(initialMessages, analysis);
+      messages = messages.concat(enrichedMessages);
     }
 
     const logType = isTextIteration ? 'iteration' : isIterativeDrawing ? 'iterative-drawing' : 'generation';
@@ -366,7 +449,10 @@ export async function generateUI(req, res) {
     } else if (isIterativeDrawing) {
       messages = messages.concat(buildRegenerateFromDrawingMessage(image, currentCode));
     } else {
-      messages = messages.concat(buildInitialMessage(image));
+      const analysis = await analyzeImage(image);
+      const initialMessages = buildInitialMessage(image);
+      const enrichedMessages = injectAnalysisContext(initialMessages, analysis);
+      messages = messages.concat(enrichedMessages);
     }
 
     const logType = isTextIteration ? 'iteration' : isIterativeDrawing ? 'iterative-drawing' : 'generation';
