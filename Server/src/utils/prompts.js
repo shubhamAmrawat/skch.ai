@@ -58,6 +58,13 @@ ILLUSTRATION / HERO IMAGE HANDLING:
 - If there is a photograph → use a real Unsplash URL from the approved list below
 - If there is a 3D illustration → use the closest illustration.popsy.co file
 
+TRANSPARENT / MISSING BACKGROUNDS:
+- If the source image has a checkerboard or transparent background in any section,
+  replace it with bg-white or bg-slate-50 — never render transparency
+- If the hero section has no illustration or image in the source,
+  add a subtle gradient background instead: bg-gradient-to-br from-slate-50 to-blue-50
+  This is the only case where you may improve upon the source
+  
 TYPOGRAPHY:
 - Match font weight (bold headline vs light body) and size hierarchy
 - Do not change the visual weight relationship between elements
@@ -97,6 +104,11 @@ CARD SECTIONS:
 - Image cards: real image from Unsplash/picsum + overlay gradient + title text
 - Stats cards: large number + label + subtle background
 - NEVER render a card as a plain grey rectangle
+- Image card titles must be contextually intelligent — infer from the page type:
+- "Analytics Suite", "Global Payments", "Inventory Hub"
+- Creative tool → "Brand Studio", "Asset Library", "Team Workspace"
+- Developer tool → "API Gateway", "CI/CD Pipeline", "Observability"
+- NEVER use "Advanced Module 1" or any numbered generic placeholder titles
 
 FOOTER:
 - Must include: logo/brand name, nav links grouped by category, social icons, copyright
@@ -121,6 +133,12 @@ MICRO-INTERACTIONS:
 - Cards: hover:shadow-lg + hover:-translate-y-1
 - CTA buttons: gradient or solid with strong hover contrast
 
+BACKGROUND COLORS — mandatory:
+- Every section must have an explicit background color set
+- Hero sections: always set bg-white, bg-slate-50, bg-gray-950, or a gradient
+  e.g. bg-gradient-to-br from-slate-900 to-indigo-950
+- NEVER leave a section with no background — transparent backgrounds cause
+  rendering artifacts in the preview iframe
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 APPROVED IMAGE URLS — use only these
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
