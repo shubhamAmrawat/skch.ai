@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import {GoogleGenerativeAI} from '@google/generative-ai';
 import {
   SYSTEM_PROMPT,
   ITERATION_PROMPT,
@@ -11,7 +12,7 @@ import {
 // Initialize clients lazily to avoid startup errors
 let openai = null;
 let anthropic = null;
-
+let gemini = null;
 function getOpenAIClient() {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured. Please add it to your .env file.');
@@ -32,10 +33,21 @@ function getAnthropicClient() {
   return anthropic;
 }
 
+function getGeminiClient() {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not configured. Please add it to your .env file.');
+  }
+  if (!gemini) {
+    gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  }
+  return gemini;
+}
 function isClaudeModel(model) {
   return model && String(model).startsWith('claude-');
 }
-
+function isGeminiModel(model) {
+  return model && String(model).startsWith('gemini-');
+}
 /**
  * Convert OpenAI-style messages to Anthropic format.
  * Anthropic: system (string), messages: [{ role, content }] where content is string or array of blocks.
@@ -82,7 +94,51 @@ function toAnthropicFormat(openaiMessages) {
   }
   return { system, messages };
 }
+/**
+ * Convert OpenAI-style messages to Gemini format.
+ * Gemini: { contents: [{ role, parts }], systemInstruction }
+ * roles must be 'user' or 'model' (not 'assistant')
+ */
+function toGeminiFormat(openaiMessages) {
+  let systemInstruction = '';
+  const contents = [];
 
+  for (const m of openaiMessages) {
+    if (m.role === 'system') {
+      systemInstruction = typeof m.content === 'string' ? m.content : '';
+      continue;
+    }
+
+    let parts = [];
+
+    if (Array.isArray(m.content)) {
+      for (const block of m.content) {
+        if (block.type === 'text') {
+          parts.push({ text: block.text });
+        } else if (block.type === 'image_url') {
+          const url = block.image_url?.url || '';
+          const base64Match = url.match(/^data:image\/(\w+);base64,(.+)$/);
+          if (base64Match) {
+            parts.push({
+              inlineData: {
+                mimeType: `image/${base64Match[1]}`,
+                data: base64Match[2],
+              },
+            });
+          }
+        }
+      }
+    } else {
+      parts = [{ text: typeof m.content === 'string' ? m.content : String(m.content) }];
+    }
+
+    // Gemini uses 'model' instead of 'assistant'
+    const role = m.role === 'assistant' ? 'model' : 'user';
+    contents.push({ role, parts });
+  }
+
+  return { systemInstruction, contents };
+}
 /**
  * Send SSE event to client
  */
@@ -167,6 +223,41 @@ export async function generateUIStream(req, res) {
           promptTokens: message.usage.input_tokens,
           completionTokens: message.usage.output_tokens,
           totalTokens: (message.usage.input_tokens || 0) + (message.usage.output_tokens || 0),
+        };
+      }
+    } else if (isGeminiModel(model)) {
+      const client = getGeminiClient();
+      const { systemInstruction, contents } = toGeminiFormat(messages);
+
+      const genModel = client.getGenerativeModel({
+        model,
+        systemInstruction: systemInstruction || undefined,
+      });
+
+      const generationConfig = model.includes('gemini-3')
+        ? { thinkingConfig: { thinkingLevel: 'low' } }
+        : {};
+
+      const streamResult = await genModel.generateContentStream({
+        contents,
+        generationConfig,
+      });
+
+      for await (const chunk of streamResult.stream) {
+        const delta = chunk.text();
+        if (delta) {
+          fullText += delta;
+          sendSSE(res, { type: 'delta', content: delta });
+        }
+      }
+
+      // Get final usage from aggregated response
+      const finalResponse = await streamResult.response;
+      if (finalResponse.usageMetadata) {
+        usage = {
+          promptTokens: finalResponse.usageMetadata.promptTokenCount || 0,
+          completionTokens: finalResponse.usageMetadata.candidatesTokenCount || 0,
+          totalTokens: finalResponse.usageMetadata.totalTokenCount || 0,
         };
       }
     } else {
@@ -302,6 +393,31 @@ export async function generateUI(req, res) {
           totalTokens: (response.usage.input_tokens || 0) + (response.usage.output_tokens || 0),
         };
       }
+    } else if (isGeminiModel(model)) {
+      const client = getGeminiClient();
+      const { systemInstruction, contents } = toGeminiFormat(messages);
+
+      const genModel = client.getGenerativeModel({
+        model,
+        systemInstruction: systemInstruction || undefined,
+      });
+
+      const generationConfig = model.includes('gemini-3')
+        ? { thinkingConfig: { thinkingLevel: 'low' } }
+        : {};
+
+      const result = await genModel.generateContent({
+        contents,
+        generationConfig,
+      });
+      generatedCode = result.response.text();
+      if (result.response.usageMetadata) {
+        usage = {
+          promptTokens: result.response.usageMetadata.promptTokenCount || 0,
+          completionTokens: result.response.usageMetadata.candidatesTokenCount || 0,
+          totalTokens: result.response.usageMetadata.totalTokenCount || 0,
+        };
+      }
     } else {
       const client = getOpenAIClient();
       const completion = await client.chat.completions.create({
@@ -392,6 +508,7 @@ export async function generateUI(req, res) {
 export async function healthCheck(req, res) {
   const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
   const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY);
+  const hasGemini = Boolean(process.env.GEMINI_API_KEY);
 
   return res.json({
     status: 'ok',
@@ -404,6 +521,10 @@ export async function healthCheck(req, res) {
     anthropic: {
       configured: hasAnthropic,
       keyPrefix: hasAnthropic ? process.env.ANTHROPIC_API_KEY.substring(0, 7) + '...' : null
+    },
+    gemini: {
+      configured: hasGemini,
+      keyPrefix: hasGemini ? process.env.GEMINI_API_KEY.substring(0, 7) + '...' : null
     }
   });
 }

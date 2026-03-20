@@ -26,10 +26,11 @@ type TabType = 'canvas' | 'preview' | 'code' | 'chat';
 const MODEL_OPTIONS = [
   { value: 'gpt-4o', label: 'GPT-4o' },
   { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
   { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
   { value: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
 ] as const;
-
 function getModelLabel(value: string): string {
   return MODEL_OPTIONS.find((o) => o.value === value)?.label ?? value;
 }
