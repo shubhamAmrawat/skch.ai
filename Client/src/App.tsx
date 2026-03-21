@@ -13,6 +13,7 @@ import { MySketchesPage } from './pages/MySketchesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ExplorePage } from './pages/ExplorePage';
 import { Analytics } from '@vercel/analytics/react';
+import { ComponentLibraryPage } from './pages/ComponentLibraryPage';
 // Get Google Client ID from environment variables
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -79,7 +80,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/library" element={<ComponentLibraryPage />} />
             <Route
               path="/profile"
               element={

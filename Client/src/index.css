@@ -409,3 +409,11 @@ body {
   background-size: 200% 100%;
   animation: shimmer 3s infinite;
 }
+/* Add at the bottom of index.css */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

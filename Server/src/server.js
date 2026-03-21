@@ -8,6 +8,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import sketchRoutes from './routes/sketchRoutes.js';
+import componentRoutes from './routes/componentRoutes.js';
 import publicSketchRoutes from './routes/publicSketchRoutes.js';
 import compression from 'compression';
 import { generalApiLimit } from './config/rateLimits.js';
@@ -87,7 +88,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/sketches/public', publicSketchRoutes); // Must be before /api/sketches to avoid :id matching "public"
 app.use('/api/sketches', sketchRoutes);
-
+app.use('/api/components', componentRoutes);
 // ===================
 // Root Endpoint
 // ===================

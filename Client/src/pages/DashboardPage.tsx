@@ -214,13 +214,17 @@ export function DashboardPage() {
               </button>
 
               {/* Component library */}
-              <div className="flex items-center gap-3 p-3.5 bg-slate-50 border border-slate-100 rounded-xl opacity-60 cursor-not-allowed text-left">
+              <button
+                onClick={() => navigate('/library')}
+                className="flex items-center gap-3 p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all text-left"
+              >
                 <Library className="w-4 h-4 text-indigo-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-700">Component library</p>
-                  <p className="text-xs text-slate-400">Coming soon</p>
+                  <p className="text-sm font-medium text-slate-800">Component library</p>
+                  <p className="text-xs text-slate-500">Browse ready-made components</p>
                 </div>
-              </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-300 ml-auto flex-shrink-0" />
+              </button>
             </div>
 
             {/* Row 2: Recent sketch + Stats */}
