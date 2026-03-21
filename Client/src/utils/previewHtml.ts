@@ -19,7 +19,11 @@ function prepareCode(code: string): string {
     /import\s+{([^}]*)}\s+from\s+['"]lucide-react['"];?\s*/g,
     (_, imports) => {
       const iconList = imports.split(',').map((s: string) => s.trim()).filter(Boolean);
-      return iconList.map((icon: string) => `const ${icon} = window.LucideIcons['${icon}'] || window.LucideIcons.Sparkles;`).join('\n') + '\n';
+      return iconList.map((iconSpecifier: string) => {
+        const [imported, local] = iconSpecifier.split(/\s+as\s+/).map((s) => s.trim());
+        const localName = local || imported;
+        return `const ${localName} = window.LucideIcons['${imported}'];`;
+      }).join('\n') + '\n';
     }
   );
 
@@ -148,56 +152,43 @@ export function generateFullPageHTML(code: string): string {
     const createIcon = (name) => {
       return function Icon({ className = '', size = 24, ...props }) {
         const iconElement = React.useRef(null);
+        const normalizeIconName = (iconName) =>
+          iconName
+            .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+            .replace(/[ _]+/g, '-')
+            .toLowerCase();
         
         React.useEffect(() => {
-          if (iconElement.current && window.lucide) {
-            const icon = window.lucide.icons[name.toLowerCase()] || window.lucide.icons['circle'];
-            if (icon) {
-              iconElement.current.innerHTML = '';
-              const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-              svg.setAttribute('width', size);
-              svg.setAttribute('height', size);
-              svg.setAttribute('viewBox', '0 0 24 24');
-              svg.setAttribute('fill', 'none');
-              svg.setAttribute('stroke', 'currentColor');
-              svg.setAttribute('stroke-width', '2');
-              svg.setAttribute('stroke-linecap', 'round');
-              svg.setAttribute('stroke-linejoin', 'round');
-              svg.innerHTML = icon[2].join('');
-              if (className) {
-                className.split(' ').forEach(c => svg.classList.add(c));
-              }
-              iconElement.current.appendChild(svg);
+          if (iconElement.current && window.lucide?.createIcons && window.lucide?.icons) {
+            const iconName = normalizeIconName(name);
+            iconElement.current.innerHTML = '<i data-lucide="' + iconName + '"></i>';
+            window.lucide.createIcons({
+              icons: window.lucide.icons,
+              root: iconElement.current,
+              attrs: { width: String(size), height: String(size) }
+            });
+
+            const renderedSvg = iconElement.current.querySelector('svg');
+            if (renderedSvg && className) {
+              className.split(' ').filter(Boolean).forEach((c) => renderedSvg.classList.add(c));
             }
           }
-        }, []);
+        }, [className, name, size]);
         
-        return React.createElement('span', { ref: iconElement, className: 'inline-flex', ...props });
+        return React.createElement('span', { ref: iconElement, className: 'inline-flex items-center justify-center', ...props });
       };
     };
 
-    // Common Lucide icons
-    const iconNames = [
-      'Search', 'Menu', 'X', 'Check', 'ChevronDown', 'ChevronUp', 'ChevronLeft', 'ChevronRight',
-      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Plus', 'Minus', 'Edit', 'Trash',
-      'Settings', 'User', 'Users', 'Mail', 'Phone', 'Calendar', 'Clock', 'Star', 'Heart',
-      'Home', 'Bell', 'Image', 'Camera', 'Video', 'File', 'Folder', 'Download', 'Upload',
-      'Share', 'Link', 'ExternalLink', 'Copy', 'Clipboard', 'Save', 'Send', 'MessageCircle',
-      'AlertCircle', 'AlertTriangle', 'Info', 'HelpCircle', 'Eye', 'EyeOff', 'Lock', 'Unlock',
-      'Key', 'Shield', 'Globe', 'Map', 'MapPin', 'Navigation', 'Compass', 'Sun', 'Moon',
-      'Cloud', 'Zap', 'Activity', 'BarChart', 'PieChart', 'TrendingUp', 'TrendingDown',
-      'Filter', 'Grid', 'List', 'Layout', 'Columns', 'Sidebar', 'Terminal', 'Code', 'Package',
-      'ShoppingCart', 'ShoppingBag', 'CreditCard', 'DollarSign', 'Percent', 'Tag', 'Gift',
-      'Award', 'Target', 'Bookmark', 'Flag', 'ThumbsUp', 'ThumbsDown', 'RefreshCw', 'RotateCw',
-      'Loader', 'MoreHorizontal', 'MoreVertical', 'Sparkles', 'Wand', 'Palette', 'Droplet'
-    ];
-
-    const icons = {};
-    iconNames.forEach(name => {
-      icons[name] = createIcon(name);
+    const iconCache = {};
+    window.LucideIcons = new Proxy(iconCache, {
+      get(target, prop) {
+        if (typeof prop !== 'string') return createIcon('circle');
+        if (!target[prop]) {
+          target[prop] = createIcon(prop);
+        }
+        return target[prop];
+      }
     });
-
-    window.LucideIcons = icons;
     
     // Make React hooks available globally
     const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer } = React;
