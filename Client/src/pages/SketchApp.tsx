@@ -60,7 +60,7 @@ export function SketchApp() {
     isLoadingSketch: !!sketchIdParam,
     generatedCode: '',
     activeTab: 'canvas',
-    selectedModel: 'gpt-4o',
+    selectedModel: 'gpt-4.1-mini',
     conversationHistory: [],
     currentSketchId: null,
     currentSketchTitle: null,

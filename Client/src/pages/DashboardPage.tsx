@@ -135,7 +135,7 @@ export function DashboardPage() {
             </div>
 
             {/* Quick actions — full width mobile, 1/3 + row-span-2 on tablet+ */}
-            <div className="md:row-span-2 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3">
+            <div className="md:row-span-2 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 justify-between">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
                 Quick actions
               </p>
