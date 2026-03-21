@@ -1,6 +1,7 @@
 import { sketchCache, sketchListKey, sketchKey } from '../config/sketchCache.js';
 import Sketch from '../models/Sketch.js';
 import logger from '../config/logger.js';
+import mongoose from 'mongoose';
 
 // Invalidate all list caches for a user + specific sketch cache
 const bustSketchCache = (userId, sketchId = null) => {
@@ -384,11 +385,11 @@ export async function getSketchStats(req, res) {
 
     const [aggregation, totalSketches] = await Promise.all([
       Sketch.aggregate([
-        { $match: { userId: userId.toString ? userId : String(userId), visibility: 'public' } },
+        {  $match: { userId: new mongoose.Types.ObjectId(userId), visibility: 'public' } },
         {
           $group: {
             _id: null,
-            totalLikes: { $sum: '$likesCount' },
+            totalLikes: { $sum: { $size: { $ifNull: ['$likes', []] } } },
             totalViews: { $sum: '$views' },
             totalPublic: { $sum: 1 },
           },
