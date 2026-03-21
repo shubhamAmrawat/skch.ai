@@ -124,7 +124,7 @@ export async function listSketches(req, res) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select('title code thumbnail tldrawSnapshot createdAt updatedAt')
+        .select('title code thumbnail tldrawSnapshot createdAt updatedAt visibility tags')
         .lean(),
       Sketch.countDocuments({ userId }),
     ]);
@@ -138,6 +138,8 @@ export async function listSketches(req, res) {
           code: s.code,
           thumbnail: s.thumbnail,
           tldrawSnapshot: s.tldrawSnapshot,
+          visibility: s.visibility,
+          tags: s.tags,
           createdAt: s.createdAt,
           updatedAt: s.updatedAt,
         })),
