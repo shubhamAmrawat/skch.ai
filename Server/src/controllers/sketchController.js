@@ -14,6 +14,9 @@ const bustSketchCache = (userId, sketchId = null) => {
   if (sketchId) {
     sketchCache.del(sketchKey(userId, sketchId.toString()));
   }
+
+  // Stats are cached separately; clear so dashboard reflects latest values.
+  sketchCache.del(`sketches:stats:${userId}`);
   
   logger.debug({ userId, sketchId }, 'Sketch cache busted');
 };

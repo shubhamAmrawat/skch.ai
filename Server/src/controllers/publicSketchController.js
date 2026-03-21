@@ -1,5 +1,6 @@
 import Sketch from '../models/Sketch.js';
 import mongoose from 'mongoose';
+import { sketchCache } from '../config/sketchCache.js';
 
 /**
  * List public sketches (paginated, searchable, sortable)
@@ -211,7 +212,7 @@ export async function getPublicSketch(req, res) {
 export async function likePublicSketch(req, res) {
   try {
     const { id } = req.params;
-    const userId = req.userId;
+    const userId = req.userId?.toString();
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -243,6 +244,11 @@ export async function likePublicSketch(req, res) {
     const updated = await Sketch.findById(id).select('likes').lean();
     const likesCount = (updated?.likes || []).length;
     const likedByMe = !hasLiked;
+
+    // Invalidate owner's dashboard stats cache so totalLikes updates immediately.
+    if (sketch.userId) {
+      sketchCache.del(`sketches:stats:${sketch.userId.toString()}`);
+    }
 
     return res.json({
       success: true,

@@ -102,12 +102,22 @@ export function ExplorePage() {
     if (!isAuthenticated) { navigate('/login'); return; }
     setLikingId(id);
     try {
-      await likePublicSketch(id);
+      const res = await likePublicSketch(id);
+      const likeData = res.data;
+      if (!likeData) return;
       setSketches((prev) =>
-        prev.map((s) => s.id === id ? { ...s, likesCount: s.likedByMe ? s.likesCount - 1 : s.likesCount + 1, likedByMe: !s.likedByMe } : s)
+        prev.map((s) => (
+          s.id === id
+            ? { ...s, likesCount: likeData.likesCount, likedByMe: likeData.likedByMe }
+            : s
+        ))
       );
       if (detailSketch?.id === id) {
-        setDetailSketch((prev) => prev ? { ...prev, likesCount: prev.likedByMe ? prev.likesCount - 1 : prev.likesCount + 1, likedByMe: !prev.likedByMe } : null);
+        setDetailSketch((prev) => (
+          prev
+            ? { ...prev, likesCount: likeData.likesCount, likedByMe: likeData.likedByMe }
+            : null
+        ));
       }
     } catch { /* ignore */ }
     finally { setLikingId(null); }
