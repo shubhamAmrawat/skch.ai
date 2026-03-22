@@ -112,7 +112,7 @@ export function ComponentLibraryLanding({
         </div>
 
         {/* ── How it works strip ── */}
-        <div className="flex items-center gap-6 mb-10 px-1">
+        {/* <div className="flex items-center gap-6 mb-10 px-1">
           {[
             { num: '1', label: 'Browse & interact with live components' },
             { num: '2', label: 'Open in editor to customize with AI or code' },
@@ -126,7 +126,7 @@ export function ComponentLibraryLanding({
               {i < 2 && <ArrowRight className="w-3 h-3 text-slate-300 ml-2 flex-shrink-0" />}
             </div>
           ))}
-        </div>
+        </div> */}
 
         {/* ── Loading skeletons ── */}
         {loading && (
