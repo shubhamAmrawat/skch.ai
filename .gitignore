@@ -59,6 +59,9 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# Server seed data (not tracked)
+Server/src/seeds/componentSeed.js
+
 # Misc
 *.local
 .cache/
