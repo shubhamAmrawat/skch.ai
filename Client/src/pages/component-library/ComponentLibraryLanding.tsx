@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layers, Search, ArrowRight, Sparkles, Code2 } from 'lucide-react';
+import { Layers, Search, Sparkles, Code2 } from 'lucide-react';
 import { LazyLandingLivePreview } from '../../components/LandingLivePreview';
 import type { ComponentDetail } from '../../services/componentApi';
 import { CATEGORIES } from './constants';
