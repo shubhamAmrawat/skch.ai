@@ -278,14 +278,16 @@ export function generateIframeDocumentHtml(
 `;
 }
 
-function prepareCode(code: string): string {
+export function prepareCode(code: string): string {
   let prepared = code;
 
+  // Remove React imports
   prepared = prepared.replace(
     /import\s+.*?\s+from\s+['"]react['"];?\s*/g,
     ''
   );
 
+  // Transform lucide-react imports to use window.LucideIcons proxy
   prepared = prepared.replace(
     /import\s+{([^}]*)}\s+from\s+['"]lucide-react['"];?\s*/g,
     (_, imports) => {
@@ -298,31 +300,40 @@ function prepareCode(code: string): string {
     }
   );
 
+  // Remove all remaining imports
   prepared = prepared.replace(/import\s+.*?\s+from\s+['"][^'"]+['"];?\s*/g, '');
   prepared = prepared.replace(/import\s+['"][^'"]+['"];?\s*/g, '');
 
+  // Extract the component name from "export default function/const ComponentName"
+  let componentName = '';
+  const nameMatch = prepared.match(/export\s+default\s+(?:function|const)\s+(\w+)/);
+  if (nameMatch) {
+    componentName = nameMatch[1];
+  }
+
+  // Transform: export default function Foo() { → function Foo() {
   prepared = prepared.replace(
-    /export\s+default\s+function\s+(\w+)/g,
-    'const exports = {}; function $1'
+    /export\s+default\s+function\s+/g,
+    'function '
   );
 
+  // Transform: export default const Foo = → const Foo = 
   prepared = prepared.replace(
-    /export\s+default\s+(\w+);?\s*$/gm,
-    'exports.default = $1;'
+    /export\s+default\s+const\s+/g,
+    'const '
   );
 
-  prepared = prepared.replace(
-    /export\s+default\s+/g,
-    'exports.default = '
-  );
+  // Remove other export default patterns
+  prepared = prepared.replace(/export\s+default\s+/g, '');
 
-  if (!prepared.includes('const exports = {}')) {
+  // Initialize exports object at top
+  if (!prepared.includes('const exports = {}') && !prepared.includes('var exports = {}')) {
     prepared = 'const exports = {};\n' + prepared;
   }
 
-  const functionMatch = prepared.match(/(?:function|const)\s+(\w+)\s*(?:=\s*\([^)]*\)\s*=>|\([^)]*\))/);
-  if (functionMatch && !prepared.includes('exports.default')) {
-    prepared += `\nexports.default = ${functionMatch[1]};`;
+  // If we found a component name, explicitly export it
+  if (componentName) {
+    prepared += `\nexports.default = ${componentName};`;
   }
 
   return prepared;
