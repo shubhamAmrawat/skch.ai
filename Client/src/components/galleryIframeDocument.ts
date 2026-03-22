@@ -64,9 +64,7 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
       display: block;
     }
     /* Allow min-h-screen components to expand fully */
-    #root > * {
-      min-height: unset !important;
-    }
+
     img { max-width: 100%; display: block; }
   </style>
 
@@ -110,17 +108,12 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
     const GALLERY_ID = ${galleryId};
     let _lastPostedHeight = -1;
 
-    console.log('[Gallery] Script execution started, GALLERY_ID:', GALLERY_ID);
-    console.log('[Gallery] Code to execute (length: ${cleanedCode.length}):');
-    console.log('[Gallery] First 200 chars:', \`${cleanedCode.substring(0, 200)}\`);
+   
 
    function postHeight() {
       const root = document.getElementById('root');
-      console.log('[Gallery] postHeight called, root exists:', !!root);
-      if (!root) {
-        console.warn('[Gallery] postHeight: root element not found!');
-        return;
-      }
+     
+      if (!root) return;
       
       // Use getBoundingClientRect for accurate rendered height
       const rect = root.getBoundingClientRect();
@@ -132,30 +125,19 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
         document.documentElement.scrollHeight
       );
       
-      console.log('[Gallery] postHeight measurements:', {
-        scrollHeight: root.scrollHeight,
-        offsetHeight: root.offsetHeight,
-        rectHeight: Math.ceil(rect.height),
-        bodyScrollHeight: document.body.scrollHeight,
-        htmlScrollHeight: document.documentElement.scrollHeight,
-        finalHeight: h
-      });
+  
       
-      if (h < 10) {
-        console.warn('[Gallery] postHeight: height too small (<10), skipping:', h);
-        return;
-      }
+      if (h < 10) return;
       
       const ceiled = Math.ceil(h);
-      console.log('[Gallery] postHeight: ceiled height:', ceiled, 'lastPosted:', _lastPostedHeight);
+    
       
       if (ceiled === _lastPostedHeight) {
-        console.log('[Gallery] postHeight: same height as last time, skipping');
         return;
       }
       
       _lastPostedHeight = ceiled;
-      console.log('[Gallery] postHeight: SENDING gallery-height message with height:', ceiled, 'galleryId:', GALLERY_ID);
+    
       window.parent.postMessage({ type: 'gallery-height', height: ceiled, __galleryId: GALLERY_ID }, '*');
     }
 
@@ -166,46 +148,21 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
     try {
       ${cleanedCode}
 
-      // Debug logging
-      console.log('[Gallery] Checking for exports.default...');
-      console.log('[Gallery] typeof exports:', typeof exports);
-      console.log('[Gallery] exports.default:', typeof (exports && exports.default));
 
       // After code runs, exports.default should be set by prepareCode logic
       ComponentToRender = (typeof exports !== 'undefined' && exports.default) || null;
       
-      if (!ComponentToRender || typeof ComponentToRender !== 'function') {
-        const debugInfo = {
-          hasExports: typeof exports !== 'undefined',
-          exportsValue: typeof exports !== 'undefined' ? typeof exports : 'undefined',
-          hasDefault: typeof exports !== 'undefined' && exports.default ? typeof exports.default : 'undefined',
-          globalKeys: typeof Object !== 'undefined' ? Object.keys(typeof exports !== 'undefined' ? exports : {}).slice(0, 10) : []
-        };
-        console.log('[Gallery] Debug info:', debugInfo);
-        throw new Error('No valid React component exported. Expected: exports.default to be a function. Got: ' + JSON.stringify(debugInfo));
+       if (!ComponentToRender || typeof ComponentToRender !== 'function') {
+        throw new Error('No valid React component exported. exports.default must be a function.');
       }
 
-      console.log('[Gallery] Found component, rendering...');
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(ComponentToRender));
-
-      // Log right after render to check if content exists
-      setTimeout(() => {
-        const rootEl = document.getElementById('root');
-        console.log('[Gallery] After render - root element content:', {
-          children: rootEl.children.length,
-          innerHTML: rootEl.innerHTML.substring(0, 100),
-          scrollHeight: rootEl.scrollHeight,
-          offsetHeight: rootEl.offsetHeight,
-          clientHeight: rootEl.clientHeight
-        });
-      }, 100);
 
       // Measure after React has painted
       // Two rAF passes = after browser layout
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          console.log('[Gallery] In requestAnimationFrame, calling postHeight');
           postHeight();
           setTimeout(postHeight, 300);
           setTimeout(postHeight, 800);
@@ -234,8 +191,6 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
     } catch (err) {
       renderError = err;
       const errorMsg = (err && typeof err === 'object' && err.message) ? String(err.message) : (typeof err === 'string' ? err : String(err));
-      console.error('[Gallery] Render error:', err);
-      console.error('[Gallery] Error message:', errorMsg);
       document.getElementById('root').innerHTML =
         '<div style="color:#ef4444;padding:16px;font-size:12px;font-family:monospace;white-space:pre-wrap;word-break:break-all">Error: ' + errorMsg + '</div>';
       window.parent.postMessage({ type: 'gallery-error', message: errorMsg, __galleryId: GALLERY_ID }, '*');
@@ -244,7 +199,6 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
     // Final safety net: if no message was sent after 5 seconds, send something
     setTimeout(() => {
       if (_lastPostedHeight === -1 && !renderError) {
-        console.warn('[Gallery] No height message sent after 5s, forcing measurement');
         postHeight();
       }
     }, 5000);
