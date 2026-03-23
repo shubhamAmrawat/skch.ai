@@ -54,9 +54,15 @@ export function ComponentLibraryDetailView({
         <div className="h-full overflow-auto dotted-grid">
           <div className="min-h-full flex items-start justify-center p-6">
             <div
-              className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300"
+              className="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300"
               style={{ width: currentResolution.width, height: '82vh' }}>
               <LivePreview code={code} />
+              {isGenerating && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-white/70 backdrop-blur-sm rounded-2xl">
+                  <div className="w-10 h-10 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin" />
+                  <p className="text-sm font-medium text-slate-500">Applying your changes…</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -35,6 +35,7 @@ export function ComponentLibraryPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const firstDeltaRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -149,6 +150,7 @@ export function ComponentLibraryPage() {
     setMessages((prev) => [...prev, userMsg]);
     setFeedback('');
     setIsGenerating(true);
+    firstDeltaRef.current = false;
     abortRef.current?.abort();
     abortRef.current = new AbortController();
     let accumulated = '';
@@ -156,7 +158,14 @@ export function ComponentLibraryPage() {
       await generateUIStreaming(
         { feedback: feedback.trim(), currentCode: code, model: 'gemini-2.5-flash' },
         {
-          onDelta: (chunk) => { accumulated += chunk; setCode(accumulated); },
+          onDelta: (chunk) => {
+            accumulated += chunk;
+            setCode(accumulated);
+            if (!firstDeltaRef.current) {
+              firstDeltaRef.current = true;
+              setActiveTab('code');
+            }
+          },
           onDone: (result) => {
             setCode(result.code ?? accumulated);
             setMessages((prev) => [...prev, {

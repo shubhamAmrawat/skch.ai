@@ -115,7 +115,7 @@ export function ComponentLibraryLanding({
 
           <div className="mt-4">
             <p className="mb-2.5 text-xs font-medium text-slate-500">Categories</p>
-            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setActiveCategory(null)}
@@ -137,7 +137,7 @@ export function ComponentLibraryLanding({
                     key={cat.value}
                     type="button"
                     onClick={() => setActiveCategory(isActive ? null : cat.value)}
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`inline-flex  shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                       isActive
                         ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
                         : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
