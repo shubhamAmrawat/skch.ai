@@ -1,135 +1,95 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, RefreshCw, MousePointer2, X } from 'lucide-react';
 import { generateGalleryIframeHtml } from './galleryIframeDocument';
-import { registerGalleryIframe, unregisterGalleryIframe } from './galleryPreviewBus';
+
+// Render iframe at a real desktop viewport, then CSS-scale to fit the card.
+// Container height = PREVIEW_HEIGHT * scale, derived from card width — zero flicker.
+const PREVIEW_WIDTH = 1200;
+const PREVIEW_HEIGHT = 600;
 
 // Module-level activation cache — survives React re-mounts within same session
 const activatedCodes = new Set<string>();
 
-// Module-level height cache — once a component's height is known, reuse it instantly
-const heightCache = new Map<string, number>();
-
-const DEFAULT_PLACEHOLDER_HEIGHT = 320;
+// Stable counter for unique gallery IDs — module-level so it never resets
+let _nextGalleryId = 1;
 
 interface LandingLivePreviewProps {
   code: string;
 }
 
-/**
- * Gallery live preview.
- * - Uses a single global message bus (one window listener total).
- * - Caches measured height so re-mounts render at the right size immediately.
- * - Never resets height once locked.
- * - srcdoc is injected exactly once per (code, galleryId) pair.
- */
 export function LandingLivePreview({ code }: LandingLivePreviewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const galleryIdRef = useRef<number | null>(null);
-  const heightLockedRef = useRef(false);
-  const injectedRef = useRef(false);
+  // useState lazy initializer is pure — runs once, outside render cycle
+  const [galleryId] = useState(() => _nextGalleryId++);
 
-  const [isLoading, setIsLoading] = useState(() => !heightCache.has(code));
+  const [scale, setScale] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Init from cache so re-mounts get the right size instantly
-  const [height, setHeight] = useState<number>(() => heightCache.get(code) ?? DEFAULT_PLACEHOLDER_HEIGHT);
+  // interactive = true means the iframe receives pointer events directly
+  const [interactive, setInteractive] = useState(false);
 
-  const lockHeight = useCallback((h: number) => {
-    if (heightLockedRef.current) return;
-    heightLockedRef.current = true;
-    const final = Math.max(h, 80);
-    heightCache.set(code, final); // persist for next mount
-    setHeight(final);
-    setIsLoading(false);
+  // Derive container height from its own width — no postMessage needed
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      if (w > 0) setScale(w / PREVIEW_WIDTH);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Reset interactive mode when the component code changes
+  useEffect(() => {
+    setInteractive(false);
   }, [code]);
 
+  // Listen for error messages from this specific iframe instance
   useEffect(() => {
-    if (!code) return;
-
-    // Register with the global bus - use code as stable identifier
-    console.log('[LandingLivePreview] Registering iframe with bus for code:', code.substring(0, 50) + '...');
-    const id = registerGalleryIframe(
-      code,
-      (h) => {
-        console.log('[LandingLivePreview] onHeight callback triggered with height:', h);
-        lockHeight(h);
-      },
-      (msg) => {
-        console.log('[LandingLivePreview] onError callback triggered with message:', msg);
-        setError(msg);
+    const id = galleryId;
+    const handler = (e: MessageEvent) => {
+      const d = e.data;
+      if (!d || typeof d !== 'object') return;
+      if (d.__galleryId !== id) return;
+      if (d.type === 'gallery-error' && typeof d.message === 'string') {
+        setError(d.message);
         setIsLoading(false);
       }
-    );
-    console.log('[LandingLivePreview] Registered with galleryId:', id);
-    galleryIdRef.current = id;
-
-    // If we already have a cached height, don't show loading
-    if (heightCache.has(code)) {
-      heightLockedRef.current = true;
-      setIsLoading(false);
-      console.log('[LandingLivePreview] Using cached height for code');
-    }
-
-    return () => {
-      console.log('[LandingLivePreview] Unregistering iframe with galleryId:', id);
-      unregisterGalleryIframe(id);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [galleryId]);
 
-  // Inject srcdoc — only once per mount (the iframe element is recreated on mount)
+  // Inject srcdoc whenever code changes
   useEffect(() => {
-    if (!code || !iframeRef.current || injectedRef.current) return;
-    if (galleryIdRef.current == null) return;
-
-    injectedRef.current = true;
-    heightLockedRef.current = heightCache.has(code); // lock immediately if cached
-
-    iframeRef.current.srcdoc = generateGalleryIframeHtml(code, galleryIdRef.current);
-
-    // Safety fallback: if no message within 3.5s, force-measure or use default
-    const fallback = setTimeout(() => {
-      if (heightLockedRef.current) return;
-      try {
-        const doc = iframeRef.current?.contentDocument;
-        if (doc) {
-          const root = doc.getElementById('root');
-          if (root) {
-            const h = Math.max(root.scrollHeight, root.offsetHeight, root.clientHeight);
-            if (h > 10) { 
-              lockHeight(h); 
-              return; 
-            }
-          }
-          // If root is empty, try measuring body
-          const h = Math.max(doc.body.scrollHeight, doc.body.offsetHeight, doc.documentElement.scrollHeight);
-          if (h > 10) { lockHeight(h); return; }
-        }
-      } catch { /* cross-origin or doc not ready */ }
-      // Fallback to default height so loading state doesn't infinite loop
-      lockHeight(DEFAULT_PLACEHOLDER_HEIGHT);
-    }, 3500);
-
-    return () => clearTimeout(fallback);
-  // galleryIdRef.current is stable after the register effect runs first
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, galleryIdRef.current]);
-
-  const handleRetry = () => {
-    if (!iframeRef.current || !code || galleryIdRef.current == null) return;
-    injectedRef.current = false;
-    heightLockedRef.current = false;
-    heightCache.delete(code);
-    setHeight(DEFAULT_PLACEHOLDER_HEIGHT);
+    if (!iframeRef.current || !code) return;
     setIsLoading(true);
     setError(null);
-    injectedRef.current = true;
-    iframeRef.current.srcdoc = generateGalleryIframeHtml(code, galleryIdRef.current);
+    iframeRef.current.srcdoc = generateGalleryIframeHtml(code, galleryId);
+  }, [code, galleryId]);
+
+  const handleRetry = () => {
+    if (!iframeRef.current || !code) return;
+    setIsLoading(true);
+    setError(null);
+    setInteractive(false);
+    iframeRef.current.srcdoc = generateGalleryIframeHtml(code, galleryId);
   };
 
   if (!code) return null;
 
+  const scaledHeight = PREVIEW_HEIGHT * scale;
+  const ready = !isLoading && !error;
+
   return (
-    <div className="w-full relative bg-white overflow-hidden" style={{ height: `${height}px` }}>
+    <div
+      ref={containerRef}
+      className="w-full relative bg-white overflow-hidden group/preview"
+      style={{ height: `${scaledHeight}px` }}
+    >
+      {/* Loading state */}
       {isLoading && !error && (
         <div className="absolute inset-0 bg-white flex items-center justify-center z-10">
           <div className="flex flex-col items-center gap-3">
@@ -138,33 +98,85 @@ export function LandingLivePreview({ code }: LandingLivePreviewProps) {
           </div>
         </div>
       )}
+
+      {/* Error state */}
       {error && (
         <div className="absolute inset-0 bg-red-50 flex items-center justify-center z-10 p-4">
           <div className="flex flex-col items-center gap-3 max-w-xs text-center">
             <AlertTriangle className="w-7 h-7 text-red-400" />
             <p className="text-xs text-red-600 font-mono bg-red-100 px-3 py-2 rounded-lg break-all">{error}</p>
-            <button type="button" onClick={handleRetry}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors">
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
+            >
               <RefreshCw className="w-3.5 h-3.5" /> Retry
             </button>
           </div>
         </div>
       )}
+
+      {/* The iframe — pointer events controlled by interactive mode */}
       <iframe
         ref={iframeRef}
         title="Gallery preview"
-        className="w-full border-0 block"
-        style={{ height: `${height}px`, width: '100%', pointerEvents: isLoading ? 'none' : 'auto' }}
-        scrolling="no"
-        sandbox="allow-scripts allow-popups"
+        className="border-0 block"
+        style={{
+          width: `${PREVIEW_WIDTH}px`,
+          height: `${PREVIEW_HEIGHT}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          pointerEvents: interactive ? 'auto' : 'none',
+        }}
+        sandbox="allow-scripts allow-forms"
+        onLoad={() => setIsLoading(false)}
       />
+
+      {/* ── Hover-to-interact overlay (shown when ready and NOT interactive) ── */}
+      {ready && !interactive && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-end pb-5 opacity-0 group-hover/preview:opacity-100 transition-opacity duration-200">
+          {/* Gradient fade at the bottom so the button is readable */}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/30 to-transparent pointer-events-none" />
+          <button
+            type="button"
+            onClick={() => setInteractive(true)}
+            className="relative z-10 flex items-center gap-2 rounded-full bg-white/90 backdrop-blur-sm border border-white/60 shadow-lg px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-white transition-colors"
+          >
+            <MousePointer2 className="w-3.5 h-3.5 text-indigo-500" />
+            Click to interact
+          </button>
+        </div>
+      )}
+
+      {/* ── Interactive mode active indicator ── */}
+      {ready && interactive && (
+        <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-2">
+          {/* Pulsing live dot */}
+          <span className="flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-white/60 shadow-sm px-2.5 py-1 text-[10px] font-semibold text-slate-700">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            Live
+          </span>
+          <button
+            type="button"
+            onClick={() => setInteractive(false)}
+            className="flex items-center gap-1 rounded-full bg-white/90 backdrop-blur-sm border border-white/60 shadow-sm px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-colors"
+          >
+            <X className="w-3 h-3" />
+            Exit
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 /**
  * Lazy wrapper — activates once when near viewport, never deactivates.
- * Module-level Set means activation survives React re-mounts.
+ * Placeholder uses the same aspect ratio as the preview so there's no layout
+ * shift when the real preview mounts.
  */
 export function LazyLandingLivePreview({ code }: { code: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -189,17 +201,16 @@ export function LazyLandingLivePreview({ code }: { code: string }) {
     return () => io.disconnect();
   }, [active, code]);
 
-  // Use cached height for placeholder so layout doesn't shift on activation
-  const placeholderHeight = heightCache.get(code) ?? DEFAULT_PLACEHOLDER_HEIGHT;
-
   return (
     <div ref={wrapRef} className="w-full min-w-0">
       {active ? (
         <LandingLivePreview code={code} />
       ) : (
+        // aspect-ratio matches PREVIEW_WIDTH/PREVIEW_HEIGHT (1200/600 = 2/1)
+        // so the placeholder height is always proportional to the card width
         <div
-          className="w-full bg-gradient-to-br from-slate-50 to-slate-100 animate-pulse rounded-lg"
-          style={{ height: `${placeholderHeight}px` }}
+          className="w-full bg-linear-to-br from-slate-50 to-slate-100 animate-pulse rounded-lg"
+          style={{ aspectRatio: `${PREVIEW_WIDTH} / ${PREVIEW_HEIGHT}` }}
           aria-hidden
         />
       )}

@@ -38,7 +38,10 @@ export function generateIframeDocumentHtml(
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #ffffff;
       overflow-x: hidden;
+      overflow-y: auto;
+      scrollbar-width: none;
     }
+    html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
     #root {
       width: 100%;
       min-height: 100vh;
