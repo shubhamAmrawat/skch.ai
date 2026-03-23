@@ -36,7 +36,6 @@ export function ComponentLibraryPage() {
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const firstDeltaRef = useRef(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -93,9 +92,6 @@ export function ComponentLibraryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allComponents, searchParams]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isGenerating]);
 
   const selectComponent = useCallback((id: string) => {
     setSearchParams((p) => { p.set('component', id); return p; });
@@ -256,7 +252,6 @@ export function ComponentLibraryPage() {
               bubbleOpen={bubbleOpen}
               onBubbleToggle={() => setBubbleOpen((p) => !p)}
               onSend={handleSend}
-              messagesEndRef={messagesEndRef}
             />
           )}
         </div>

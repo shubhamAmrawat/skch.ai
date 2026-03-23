@@ -1,4 +1,3 @@
-import type { RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Copy, Check } from 'lucide-react';
 import { LivePreview } from '../../components/LivePreview';
@@ -6,7 +5,7 @@ import { ResizableSplitPane } from '../../components/ResizableSplitPane';
 import type { ComponentDetail } from '../../services/componentApi';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCodeWithHighlighting } from './syntaxHighlight';
-import { ComponentLibraryFloatingAiBar } from './ComponentLibraryFloatingAiBar';
+import { FloatingAiBar } from './ComponentLibraryFloatingAiBar';
 import type { TabType, Resolution, Message } from './constants';
 import { RESOLUTIONS } from './constants';
 
@@ -24,7 +23,6 @@ export interface ComponentLibraryDetailViewProps {
   bubbleOpen: boolean;
   onBubbleToggle: () => void;
   onSend: () => void;
-  messagesEndRef: RefObject<HTMLDivElement | null>;
 }
 
 export function ComponentLibraryDetailView({
@@ -41,7 +39,6 @@ export function ComponentLibraryDetailView({
   bubbleOpen,
   onBubbleToggle,
   onSend,
-  messagesEndRef,
 }: ComponentLibraryDetailViewProps) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -111,7 +108,7 @@ export function ComponentLibraryDetailView({
         </div>
       )}
 
-      <ComponentLibraryFloatingAiBar
+      <FloatingAiBar
         open={bubbleOpen}
         onToggle={() => {
           if (!isAuthenticated) { navigate('/login'); return; }
@@ -122,7 +119,6 @@ export function ComponentLibraryDetailView({
         setFeedback={setFeedback}
         isGenerating={isGenerating}
         onSend={onSend}
-        messagesEndRef={messagesEndRef}
       />
     </div>
   );
