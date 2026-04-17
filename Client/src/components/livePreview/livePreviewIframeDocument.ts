@@ -238,9 +238,64 @@ export function generateIframeDocumentHtml(
     
     try {
       ${cleanedCode}
-      
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(exports.default || Component || App));
+
+      const resolveComponentToRender = () => {
+        if (typeof exports !== 'undefined' && exports && typeof exports.default === 'function') {
+          return exports.default;
+        }
+        if (typeof window !== 'undefined') {
+          if (typeof window.Component === 'function') return window.Component;
+          if (typeof window.App === 'function') return window.App;
+        }
+        return null;
+      };
+
+      const componentToRender = resolveComponentToRender();
+      if (!componentToRender) {
+        throw new Error('No valid React component found. Export a default component or define App/Component.');
+      }
+
+      class PreviewErrorBoundary extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { hasError: false, message: '' };
+        }
+        static getDerivedStateFromError(error) {
+          return {
+            hasError: true,
+            message: error && error.message ? String(error.message) : 'Unknown render error',
+          };
+        }
+        componentDidCatch(error) {
+          const message = error && error.message ? String(error.message) : String(error);
+          window.parent.postMessage({ type: 'error', message }, '*');
+        }
+        render() {
+          if (this.state.hasError) {
+            return React.createElement(
+              'div',
+              { style: { color: '#dc2626', padding: '20px', fontFamily: 'monospace' } },
+              'Error: ' + this.state.message
+            );
+          }
+          return this.props.children;
+        }
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'), {
+        onRecoverableError: function(error) {
+          const message = error && error.message ? String(error.message) : String(error);
+          console.warn('Recoverable render error:', message);
+          window.parent.postMessage({ type: 'error', message }, '*');
+        }
+      });
+      root.render(
+        React.createElement(
+          PreviewErrorBoundary,
+          null,
+          React.createElement(componentToRender)
+        )
+      );
       
       setTimeout(fixImages, 50);
       setTimeout(fixImages, 200);
@@ -307,12 +362,27 @@ export function prepareCode(code: string): string {
   prepared = prepared.replace(/import\s+.*?\s+from\s+['"][^'"]+['"];?\s*/g, '');
   prepared = prepared.replace(/import\s+['"][^'"]+['"];?\s*/g, '');
 
-  // Extract the component name from "export default function/const ComponentName"
+  // Extract component name from common default-export forms:
+  // - export default function Foo() {}
+  // - export default const Foo = ...
+  // - export default Foo;
   let componentName = '';
-  const nameMatch = prepared.match(/export\s+default\s+(?:function|const)\s+(\w+)/);
+  const nameMatch = prepared.match(/export\s+default\s+(?:function|const)?\s*(\w+)/);
   if (nameMatch) {
     componentName = nameMatch[1];
   }
+
+  // Handle: export default function () { ... } (anonymous default function)
+  prepared = prepared.replace(
+    /export\s+default\s+function\s*\(/g,
+    'exports.default = function('
+  );
+
+  // Handle: export default () => ... and export default props => ...
+  prepared = prepared.replace(
+    /export\s+default\s+((?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)/g,
+    'exports.default = $1'
+  );
 
   // Transform: export default function Foo() { → function Foo() {
   prepared = prepared.replace(
@@ -326,6 +396,12 @@ export function prepareCode(code: string): string {
     'const '
   );
 
+  // Transform: export default Foo; → exports.default = Foo;
+  prepared = prepared.replace(
+    /export\s+default\s+(\w+);?\s*$/gm,
+    'exports.default = $1;'
+  );
+
   // Remove other export default patterns
   prepared = prepared.replace(/export\s+default\s+/g, '');
 
@@ -337,6 +413,12 @@ export function prepareCode(code: string): string {
   // If we found a component name, explicitly export it
   if (componentName) {
     prepared += `\nexports.default = ${componentName};`;
+  }
+
+  // Final fallback: if we still don't have exports.default, use first declared component-like symbol.
+  const functionMatch = prepared.match(/(?:function|const)\s+(\w+)\s*(?:=\s*\([^)]*\)\s*=>|\([^)]*\))/);
+  if (functionMatch && !prepared.includes('exports.default')) {
+    prepared += `\nexports.default = ${functionMatch[1]};`;
   }
 
   return prepared;

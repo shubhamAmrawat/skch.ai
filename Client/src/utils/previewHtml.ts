@@ -33,6 +33,18 @@ function prepareCode(code: string): string {
   // Remove side-effect imports (e.g., import 'tailwindcss/tailwind.css')
   prepared = prepared.replace(/import\s+['"][^'"]+['"];?\s*/g, '');
 
+  // Handle: export default function () { ... } (anonymous default function)
+  prepared = prepared.replace(
+    /export\s+default\s+function\s*\(/g,
+    'exports.default = function('
+  );
+
+  // Handle: export default () => ... and export default props => ...
+  prepared = prepared.replace(
+    /export\s+default\s+((?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)/g,
+    'exports.default = $1'
+  );
+
   // Handle default export with function declaration
   prepared = prepared.replace(
     /export\s+default\s+function\s+(\w+)/g,
@@ -221,9 +233,63 @@ export function generateFullPageHTML(code: string): string {
     
     try {
       ${cleanedCode}
-      
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(exports.default || Component || App));
+
+      const resolveComponentToRender = () => {
+        if (typeof exports !== 'undefined' && exports && typeof exports.default === 'function') {
+          return exports.default;
+        }
+        if (typeof window !== 'undefined') {
+          if (typeof window.Component === 'function') return window.Component;
+          if (typeof window.App === 'function') return window.App;
+        }
+        return null;
+      };
+
+      const componentToRender = resolveComponentToRender();
+      if (!componentToRender) {
+        throw new Error('No valid React component found. Export a default component or define App/Component.');
+      }
+
+      class PreviewErrorBoundary extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { hasError: false, message: '' };
+        }
+        static getDerivedStateFromError(error) {
+          return {
+            hasError: true,
+            message: error && error.message ? String(error.message) : 'Unknown render error',
+          };
+        }
+        componentDidCatch(error) {
+          const message = error && error.message ? String(error.message) : String(error);
+          console.error('Render error:', message);
+        }
+        render() {
+          if (this.state.hasError) {
+            return React.createElement(
+              'div',
+              { style: { color: '#dc2626', padding: '20px', fontFamily: 'monospace' } },
+              'Error: ' + this.state.message
+            );
+          }
+          return this.props.children;
+        }
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'), {
+        onRecoverableError: function(error) {
+          const message = error && error.message ? String(error.message) : String(error);
+          console.warn('Recoverable render error:', message);
+        }
+      });
+      root.render(
+        React.createElement(
+          PreviewErrorBoundary,
+          null,
+          React.createElement(componentToRender)
+        )
+      );
       
       // Fix images after React renders (multiple attempts to catch async rendering)
       setTimeout(fixImages, 50);
