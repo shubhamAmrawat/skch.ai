@@ -16,12 +16,13 @@ import {
   Globe,
   Lock,
   Tag,
+  History,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AvatarImage } from './AvatarImage';
 import { useAuth } from '../hooks/useAuth';
 
-type TabType = 'canvas' | 'preview' | 'code' | 'chat';
+type TabType = 'canvas' | 'preview' | 'code' | 'chat' | 'history';
 
 const MODEL_OPTIONS = [
   { value: 'gpt-4.1', label: 'GPT-4.1' },
@@ -53,6 +54,7 @@ export interface SketchHeaderControls {
   tags?: string[];
   onTagsChange?: (tags: string[]) => void;
   suggestedTags?: string[];
+  sketchId?: string | null;
 }
 
 interface HeaderProps {
@@ -102,6 +104,7 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
       tags = [],
       onTagsChange,
       suggestedTags = [],
+      sketchId,
     } = sketchControls;
 
     return (
@@ -148,6 +151,14 @@ export function Header({ sketchControls, selectedModel, onModelChange }: HeaderP
               icon={<MessageSquare className="w-3.5 h-3.5" />}
               label="Refine"
               disabled={!generatedCode && !isGenerating}
+            />
+            <TabButton
+              active={activeTab === 'history'}
+              onClick={() => onTabChange('history')}
+              icon={<History className="w-3.5 h-3.5" />}
+              label="History"
+              disabled={!sketchId}
+              disabledTitle="Save your sketch to unlock version history"
             />
           </div>
 
@@ -572,18 +583,20 @@ function TabButton({
   icon,
   label,
   disabled,
+  disabledTitle = 'Generate a UI first',
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
   disabled?: boolean;
+  disabledTitle?: string;
 }) {
   return (
     <button
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
-      title={disabled ? 'Generate a UI first' : undefined}
+      title={disabled ? disabledTitle : undefined}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${active
           ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
           : disabled

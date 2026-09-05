@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>History Tab Redesign — Mockup</title>
+<style>
+  :root{
+    --slate-25:#fafbfc; --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0; --slate-300:#cbd5e1;
+    --slate-400:#94a3b8; --slate-500:#64748b; --slate-600:#475569; --slate-700:#334155; --slate-800:#1e293b; --slate-900:#0f172a;
+    --indigo-50:#eef2ff; --indigo-100:#e0e7ff; --indigo-200:#c7d2fe; --indigo-500:#6366f1; --indigo-600:#4f46e5; --indigo-700:#4338ca;
+    --emerald-50:#ecfdf5; --emerald-200:#a7f3d0; --emerald-600:#059669;
+    --amber-50:#fffbeb; --amber-200:#fde68a; --amber-600:#d97706;
+    --violet-50:#f5f3ff; --violet-200:#ddd6fe; --violet-600:#7c3aed;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:32px; min-height:100vh; background:var(--slate-100);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex; align-items:flex-start; justify-content:center; gap:28px; flex-wrap:wrap;
+  }
+  .note{
+    max-width:280px; font-size:12.5px; color:var(--slate-500); line-height:1.55; padding-top:8px;
+  }
+  .note b{color:var(--slate-700);}
+  .note .tag{display:inline-block; font-size:10.5px; font-weight:600; color:var(--indigo-700); background:var(--indigo-50); border:1px solid var(--indigo-200); padding:1px 7px; border-radius:999px; margin-bottom:8px;}
+  .panel{
+    width:420px; height:640px; background:#fff; border:1px solid var(--slate-200); border-radius:16px;
+    overflow:hidden; display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 12px 32px -12px rgba(15,23,42,.18);
+  }
+  /* header */
+  .head{padding:16px 18px 14px; border-bottom:1px solid var(--slate-200); background:var(--slate-50); flex-shrink:0;}
+  .head-top{display:flex; align-items:center; justify-content:space-between;}
+  .head-title{display:flex; align-items:center; gap:8px; font-size:14.5px; font-weight:600; color:var(--slate-800);}
+  .head-count{font-size:11.5px; color:var(--slate-400); font-weight:500;}
+  .head-sub{margin-top:2px; font-size:11.5px; color:var(--slate-400);}
+
+  /* current card */
+  .current-wrap{padding:12px 14px 4px; flex-shrink:0;}
+  .current-card{
+    position:relative; background:var(--indigo-50); border:1px solid var(--indigo-200); border-radius:12px;
+    padding:12px 14px 12px 16px; overflow:hidden; transition:box-shadow .25s ease;
+  }
+  .current-card::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--indigo-600);}
+  .current-card.flash{animation:flashglow 1.1s ease;}
+  @keyframes flashglow{
+    0%{box-shadow:0 0 0 0 rgba(79,70,229,.35);}
+    30%{box-shadow:0 0 0 6px rgba(79,70,229,.12);}
+    100%{box-shadow:0 0 0 0 rgba(79,70,229,0);}
+  }
+  .current-row1{display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;}
+  .current-badge{
+    display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; letter-spacing:.04em;
+    color:var(--indigo-700); background:#fff; border:1px solid var(--indigo-200); padding:2px 8px 2px 6px; border-radius:999px;
+  }
+  .current-time{font-size:11px; color:var(--slate-400);}
+  .current-label{font-size:13.5px; font-weight:600; color:var(--slate-800); line-height:1.4;}
+  .current-caption{margin-top:4px; font-size:11px; color:var(--slate-500);}
+
+  /* scroll list */
+  .list-scroll{flex:1; overflow-y:auto; padding:6px 14px 16px;}
+  .day-group{margin-top:14px;}
+  .day-group:first-child{margin-top:10px;}
+  .day-label{
+    font-size:10.5px; font-weight:700; letter-spacing:.06em; color:var(--slate-400); text-transform:uppercase;
+    padding:0 0 8px 30px;
+  }
+  .timeline{position:relative;}
+  .tl-row{
+    position:relative; display:flex; align-items:flex-start; gap:10px; padding:9px 8px 9px 0; border-radius:10px;
+    cursor:pointer; transition:background .15s ease;
+  }
+  .tl-row:hover{background:var(--slate-50);}
+  .tl-row:hover .chev{opacity:1; transform:translateX(0);}
+  .tl-gutter{width:30px; flex-shrink:0; position:relative; display:flex; justify-content:center;}
+  .tl-line{position:absolute; top:0; bottom:0; left:50%; width:2px; background:var(--slate-200); transform:translateX(-50%);}
+  .tl-row:first-child .tl-line{top:16px;}
+  .tl-row:last-child .tl-line{bottom:calc(100% - 16px);}
+  .tl-dot{
+    position:relative; z-index:1; width:26px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+    background:#fff; border:1.5px solid var(--slate-200); margin-top:2px;
+  }
+  .tl-dot svg{width:13px; height:13px;}
+  .tl-dot.generate{border-color:var(--indigo-200); color:var(--indigo-600); background:var(--indigo-50);}
+  .tl-dot.iterate{border-color:var(--emerald-200); color:var(--emerald-600); background:var(--emerald-50);}
+  .tl-dot.restore{border-color:var(--violet-200); color:var(--violet-600); background:var(--violet-50);}
+  .tl-dot.manual{border-color:var(--amber-200); color:var(--amber-600); background:var(--amber-50);}
+  .tl-body{flex:1; min-width:0; padding-top:1px;}
+  .tl-label{font-size:13px; color:var(--slate-700); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .tl-time{font-size:11px; color:var(--slate-400); margin-top:2px;}
+  .tl-right{display:flex; align-items:center; gap:6px; flex-shrink:0; padding-top:2px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; border:1px solid transparent; white-space:nowrap;
+  }
+  .chip svg{width:10px; height:10px;}
+  .chip.generate{color:var(--indigo-600); background:var(--indigo-50); border-color:var(--indigo-200);}
+  .chip.iterate{color:var(--emerald-600); background:var(--emerald-50); border-color:var(--emerald-200);}
+  .chip.restore{color:var(--violet-600); background:var(--violet-50); border-color:var(--violet-200);}
+  .chip.manual{color:var(--amber-600); background:var(--amber-50); border-color:var(--amber-200);}
+  .chev{opacity:0; transform:translateX(-3px); transition:all .15s ease; color:var(--slate-300); display:flex;}
+  .chev svg{width:14px; height:14px;}
+
+  /* empty-ish footer hint */
+  .cap-hint{margin-top:16px; text-align:center; font-size:11px; color:var(--slate-300); padding:0 10px;}
+
+  /* preview view */
+  .preview-view{display:none; flex-direction:column; flex:1; min-height:0;}
+  .preview-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--slate-200); background:var(--slate-50); flex-shrink:0;}
+  .back-btn{display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:var(--slate-600); background:none; border:none; cursor:pointer; padding:4px 2px;}
+  .back-btn:hover{color:var(--slate-900);}
+  .back-btn svg{width:14px; height:14px;}
+  .preview-meta{text-align:right;}
+  .preview-meta .l{font-size:12px; font-weight:600; color:var(--slate-700); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .preview-meta .t{font-size:10.5px; color:var(--slate-400);}
+  .preview-body{flex:1; min-height:0; position:relative; background:
+      radial-gradient(circle at 30% 20%, rgba(99,102,241,.10), transparent 55%),
+      radial-gradient(circle at 80% 80%, rgba(124,58,237,.08), transparent 55%), #ffffff;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .fake-ui{width:78%; border:1px solid var(--slate-200); border-radius:10px; background:#fff; box-shadow:0 4px 18px -8px rgba(15,23,42,.15); overflow:hidden;}
+  .fake-ui .bar{height:26px; background:var(--slate-100); display:flex; align-items:center; gap:5px; padding:0 10px; border-bottom:1px solid var(--slate-200);}
+  .fake-ui .dot2{width:7px; height:7px; border-radius:999px; background:var(--slate-300);}
+  .fake-ui .content{padding:16px;}
+  .fake-ui .skel{height:9px; border-radius:5px; background:var(--slate-100); margin-bottom:8px;}
+  .preview-caption{position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:10.5px; color:var(--slate-300);}
+  .preview-foot{padding:12px 16px 14px; border-top:1px solid var(--slate-200); background:var(--slate-50); flex-shrink:0;}
+  .btn{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 12px; border-radius:10px;
+    font-size:12.5px; font-weight:600; border:none; cursor:pointer; transition:all .15s ease;
+  }
+  .btn svg{width:14px; height:14px;}
+  .btn-primary{background:var(--indigo-600); color:#fff;}
+  .btn-primary:hover{background:var(--indigo-700);}
+  .confirm-row{display:flex; gap:8px;}
+  .btn-ghost{background:#fff; color:var(--slate-600); border:1px solid var(--slate-200);}
+  .btn-ghost:hover{background:var(--slate-100);}
+  .confirm-copy{font-size:11.5px; color:var(--slate-500); text-align:center; margin:0 0 8px;}
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(10px); opacity:0;
+    background:var(--slate-900); color:#fff; font-size:12.5px; font-weight:500; padding:9px 16px; border-radius:999px;
+    display:flex; align-items:center; gap:7px; pointer-events:none; transition:all .25s ease; box-shadow:0 8px 24px -6px rgba(0,0,0,.35);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast svg{width:14px; height:14px; color:#6ee7b7;}
+</style>
+</head>
+<body>
+
+  <div>
+    <div class="panel">
+      <!-- HEADER -->
+      <div class="head">
+        <div class="head-top">
+          <div class="head-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            Version History
+          </div>
+          <span class="head-count" id="countLabel">6 versions</span>
+        </div>
+        <div class="head-sub">Every edit is saved here — up to 30 versions are kept.</div>
+      </div>
+
+      <!-- LIST VIEW -->
+      <div id="listView">
+        <div class="current-wrap">
+          <div class="current-card" id="currentCard">
+            <div class="current-row1">
+              <span class="current-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><path d="M20 6 9 17l-5-5"/></svg>
+                CURRENT
+              </span>
+              <span class="current-time" id="currentTime">2m ago</span>
+            </div>
+            <div class="current-label" id="currentLabel">Restored: give a dark and light theme switch</div>
+            <div class="current-caption">This is what's live in your preview right now.</div>
+          </div>
+        </div>
+
+        <div class="list-scroll" id="listScroll"></div>
+      </div>
+
+      <!-- PREVIEW VIEW -->
+      <div class="preview-view" id="previewView">
+        <div class="preview-head">
+          <button class="back-btn" onclick="closePreview()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            Back to history
+          </button>
+          <div class="preview-meta">
+            <div class="l" id="pvLabel">—</div>
+            <div class="t" id="pvTime">—</div>
+          </div>
+        </div>
+        <div class="preview-body">
+          <div class="fake-ui">
+            <div class="bar"><span class="dot2"></span><span class="dot2"></span><span class="dot2"></span></div>
+            <div class="content">
+              <div class="skel" style="width:40%;height:14px;margin-bottom:14px;"></div>
+              <div class="skel" style="width:92%;"></div>
+              <div class="skel" style="width:78%;"></div>
+              <div class="skel" style="width:85%;"></div>
+              <div class="skel" style="width:55%;"></div>
+            </div>
+          </div>
+          <div class="preview-caption">Live preview of this version</div>
+        </div>
+        <div class="preview-foot" id="previewFoot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="tag">MOCKUP · CLICK AROUND</div>
+    <b>What changed vs. the current tab:</b> the live version is pinned at the top with no restore button — you're already there, so offering to "restore" it was a no-op. Older entries below stay restorable, and a restored entry is now labeled with what it restored (<i>"Restored: give a dark and light theme switch"</i>) instead of a raw timestamp. Try clicking any historical row, then Restore — watch it become the new pinned Current, while the old Current correctly drops back into the list as a normal, restorable entry.
+  </div>
+
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    <span id="toastText">Version restored</span>
+  </div>
+
+<script>
+const ICONS = {
+  generate: '<path d="m12 3-1.9 4.1L6 9l4.1 1.9L12 15l1.9-4.1L18 9l-4.1-1.9L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>',
+  iterate: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/>',
+  restore: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  manual: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>'
+};
+const LABELS = { generate:'Generated', iterate:'Refined', restore:'Restored', manual:'Edited' };
+
+let nextId = 7;
+let versions = [
+  { id:'v1', label:'Initial generation', trigger:'generate', createdAt: Date.now() - 1000*60*60*24*2 },
+  { id:'v2', label:'add a hero banner with a call to action button', trigger:'iterate', createdAt: Date.now() - 1000*60*60*26 },
+  { id:'v3', label:'give a dark and light theme switch', trigger:'iterate', createdAt: Date.now() - 1000*60*6 },
+  { id:'v4', label:'add some interesting movie related quottes at the bottom', trigger:'iterate', createdAt: Date.now() - 1000*60*4 },
+  { id:'v5', label:'Restored: give a dark and light theme switch', sourceLabel:'give a dark and light theme switch', trigger:'restore', createdAt: Date.now() - 1000*60*2 },
+];
+
+function relTime(ts){
+  const s = Math.round((Date.now()-ts)/1000);
+  if(s<60) return 'Just now';
+  const m = Math.round(s/60); if(m<60) return m+'m ago';
+  const h = Math.round(m/60); if(h<24) return h+'h ago';
+  const d = Math.round(h/24); if(d<7) return d+'d ago';
+  return new Date(ts).toLocaleDateString([], {month:'short', day:'numeric'});
+}
+function dayBucket(ts){
+  const d = new Date(ts), now = new Date();
+  const startOf = x => new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();
+  const diffDays = Math.round((startOf(now)-startOf(d))/86400000);
+  if(diffDays<=0) return 'Today';
+  if(diffDays===1) return 'Yesterday';
+  return 'Earlier';
+}
+function baseLabelFor(v){ return v.trigger==='restore' ? (v.sourceLabel||v.label.replace(/^Restored:\s*/,'')) : v.label; }
+
+function render(){
+  const sorted = [...versions].sort((a,b)=>a.createdAt-b.createdAt);
+  const current = sorted[sorted.length-1];
+  const history = sorted.slice(0,-1).reverse();
+
+  document.getElementById('countLabel').textContent = versions.length + ' version' + (versions.length===1?'':'s');
+  document.getElementById('currentLabel').textContent = current.label;
+  document.getElementById('currentTime').textContent = relTime(current.createdAt);
+
+  const groups = {};
+  const order = [];
+  history.forEach(v=>{
+    const b = dayBucket(v.createdAt);
+    if(!groups[b]){groups[b]=[]; order.push(b);}
+    groups[b].push(v);
+  });
+
+  const scroll = document.getElementById('listScroll');
+  if(history.length===0){
+    scroll.innerHTML = '<div class="cap-hint" style="margin-top:40px;">No earlier versions yet — future edits will show up here.</div>';
+    return;
+  }
+
+  scroll.innerHTML = order.map(bucket=>{
+    const rows = groups[bucket].map((v,i)=>{
+      const icon = ICONS[v.trigger] || ICONS.iterate;
+      return `<div class="tl-row" onclick="openPreview('${v.id}')">
+        <div class="tl-gutter"><div class="tl-line"></div>
+          <div class="tl-dot ${v.trigger}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-label">${v.label}</div>
+          <div class="tl-time">${relTime(v.createdAt)}</div>
+        </div>
+        <div class="tl-right">
+          <span class="chip ${v.trigger}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>${LABELS[v.trigger]}</span>
+          <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="day-group"><div class="day-label">${bucket}</div><div class="timeline">${rows}</div></div>`;
+  }).join('') + '<div class="cap-hint">That\'s the full history for this sketch.</div>';
+}
+
+let previewId = null;
+function openPreview(id){
+  previewId = id;
+  const v = versions.find(x=>x.id===id);
+  document.getElementById('pvLabel').textContent = v.label;
+  document.getElementById('pvTime').textContent = relTime(v.createdAt);
+  renderFoot(false);
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('previewView').style.display = 'flex';
+}
+function closePreview(){
+  document.getElementById('previewView').style.display = 'none';
+  document.getElementById('listView').style.display = 'block';
+  previewId = null;
+}
+function renderFoot(confirming){
+  const foot = document.getElementById('previewFoot');
+  if(!confirming){
+    foot.innerHTML = `<button class="btn btn-primary" onclick="renderFoot(true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Restore this version</button>`;
+  } else {
+    foot.innerHTML = `
+      <p class="confirm-copy">Replace your current code with this version? This is also saved to history, so you can undo it.</p>
+      <div class="confirm-row">
+        <button class="btn btn-ghost" onclick="renderFoot(false)">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmRestore()">Confirm restore</button>
+      </div>`;
+  }
+}
+function confirmRestore(){
+  const src = versions.find(x=>x.id===previewId);
+  const baseLabel = baseLabelFor(src);
+  versions.push({
+    id: 'v'+(nextId++),
+    label: 'Restored: ' + baseLabel,
+    sourceLabel: baseLabel,
+    trigger: 'restore',
+    createdAt: Date.now(),
+  });
+  render();
+  closePreview();
+  showToast('Version restored');
+  const card = document.getElementById('currentCard');
+  card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+}
+function showToast(text){
+  document.getElementById('toastText').textContent = text;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+render();
+</script>
+</body>
+</html>

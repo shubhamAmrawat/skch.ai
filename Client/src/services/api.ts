@@ -40,6 +40,7 @@ export interface GenerateStreamCallbacks {
     tags?: string[];
     usage?: GenerateResponse['usage'];
     truncated?: boolean;
+    suggestedTitle?: string | null;
   }) => void;
   onError: (error: string) => void;
 }
@@ -117,6 +118,7 @@ export async function generateUIStreaming(
                 tags: data.tags ?? [],
                 usage: data.usage,
                 truncated: data.truncated ?? false,
+                suggestedTitle: data.suggestedTitle ?? null,
               });
               return;
             } else if (data.type === 'error') {

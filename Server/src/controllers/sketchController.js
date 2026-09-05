@@ -21,6 +21,9 @@ const bustSketchCache = (userId, sketchId = null) => {
   logger.debug({ userId, sketchId }, 'Sketch cache busted');
 };
 
+// Version history cap (Phase 1) — oldest entries are dropped via $slice when exceeded.
+const MAX_VERSIONS = 30;
+
 /**
  * Create a new sketch
  * POST /api/sketches
@@ -45,9 +48,9 @@ function normalizeTags(arr) {
 }
 
 export async function createSketch(req, res) {
+  const userId = req.userId;
   try {
     const { title, code, tldrawSnapshot, thumbnail, conversationHistory, visibility, tags } = req.body;
-    const userId = req.userId;
 
 
     const tagsArr = normalizeTags(tags);
@@ -68,6 +71,7 @@ export async function createSketch(req, res) {
       conversationHistory: normalizeConversationHistory(conversationHistory),
       visibility: visibility === 'public' ? 'public' : 'private',
       tags: tagsArr,
+      versions: [{ code, trigger: 'generate', label: 'Initial generation', createdAt: new Date() }],
     });
 // new sketch → invalidate list
     bustSketchCache(userId);
@@ -105,8 +109,8 @@ export async function createSketch(req, res) {
  * GET /api/sketches?page=1&limit=20
  */
 export async function listSketches(req, res) {
+  const userId = req.userId;
   try {
-    const userId = req.userId;
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
@@ -171,9 +175,9 @@ export async function listSketches(req, res) {
  * GET /api/sketches/:id
  */
 export async function getSketch(req, res) {
+  const { id } = req.params;
+  const userId = req.userId;
   try {
-    const { id } = req.params;
-    const userId = req.userId;
 
 
     // Check cache
@@ -234,10 +238,10 @@ export async function getSketch(req, res) {
  * PUT /api/sketches/:id
  */
 export async function updateSketch(req, res) {
+  const { id } = req.params;
+  const userId = req.userId;
   try {
-    const { id } = req.params;
     const { title, code, tldrawSnapshot, thumbnail, conversationHistory, visibility, tags } = req.body;
-    const userId = req.userId;
 
     const update = {};
     if (title !== undefined) update.title = title?.trim() || 'Untitled Sketch';
@@ -310,13 +314,232 @@ export async function updateSketch(req, res) {
 }
 
 /**
+ * Append a new version snapshot to a sketch's bounded history.
+ * POST /api/sketches/:id/versions
+ */
+export async function appendSketchVersion(req, res) {
+  const { id } = req.params;
+  const userId = req.userId;
+  try {
+    const { code, trigger, label } = req.body;
+
+    const versionEntry = {
+      code,
+      trigger,
+      label: label?.trim() || '',
+      createdAt: new Date(),
+    };
+
+    const sketch = await Sketch.findOneAndUpdate(
+      { _id: id, userId },
+      {
+        $set: { code },
+        $push: { versions: { $each: [versionEntry], $slice: -MAX_VERSIONS } },
+      },
+      { new: true, select: 'versions' }
+    );
+
+    if (!sketch) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not found',
+        message: 'Sketch not found',
+      });
+    }
+
+    bustSketchCache(userId, id);
+
+    const savedVersion = sketch.versions[sketch.versions.length - 1];
+    return res.status(201).json({
+      success: true,
+      data: {
+        version: {
+          id: savedVersion._id.toString(),
+          createdAt: savedVersion.createdAt,
+          trigger: savedVersion.trigger,
+          label: savedVersion.label,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error, userId, sketchId: id }, 'Failed to append sketch version');
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to save version',
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * List version history metadata (no code payload) for a sketch, newest first.
+ * GET /api/sketches/:id/versions
+ */
+export async function listSketchVersions(req, res) {
+  const { id } = req.params;
+  const userId = req.userId;
+  try {
+    const sketch = await Sketch.findOne({ _id: id, userId }).select('versions');
+
+    if (!sketch) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not found',
+        message: 'Sketch not found',
+      });
+    }
+
+    const versions = [...sketch.versions]
+      .reverse()
+      .map((v) => ({
+        id: v._id.toString(),
+        createdAt: v.createdAt,
+        trigger: v.trigger,
+        label: v.label,
+      }));
+
+    return res.json({
+      success: true,
+      data: { versions },
+    });
+  } catch (error) {
+    logger.error({ err: error, userId, sketchId: id }, 'Failed to list sketch versions');
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to load version history',
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * Fetch a single version's full code, for previewing before restore.
+ * GET /api/sketches/:id/versions/:versionId
+ */
+export async function getSketchVersionDetail(req, res) {
+  const { id, versionId } = req.params;
+  const userId = req.userId;
+  try {
+    const sketch = await Sketch.findOne(
+      { _id: id, userId, 'versions._id': versionId },
+      { 'versions.$': 1 }
+    );
+
+    if (!sketch || !sketch.versions || sketch.versions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not found',
+        message: 'Version not found',
+      });
+    }
+
+    const version = sketch.versions[0];
+    return res.json({
+      success: true,
+      data: {
+        version: {
+          id: version._id.toString(),
+          code: version.code,
+          createdAt: version.createdAt,
+          trigger: version.trigger,
+          label: version.label,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error, userId, sketchId: id, versionId }, 'Failed to load sketch version');
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to load version',
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * Restore a sketch's code to a prior version. The restore itself is recorded
+ * as a new version entry, so restoring is always undoable.
+ * POST /api/sketches/:id/versions/:versionId/restore
+ */
+export async function restoreSketchVersion(req, res) {
+  const { id, versionId } = req.params;
+  const userId = req.userId;
+  try {
+    const existing = await Sketch.findOne(
+      { _id: id, userId, 'versions._id': versionId },
+      { 'versions.$': 1 }
+    );
+
+    if (!existing || !existing.versions || existing.versions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not found',
+        message: 'Version not found',
+      });
+    }
+
+    const restoredCode = existing.versions[0].code;
+    // Unwrap a nested 'Restored: X' label back to its original X, so
+    // restoring a restore never nests into 'Restored: Restored: Restored: X'.
+    const restoredLabel = existing.versions[0].label || '';
+    const baseLabel = restoredLabel.replace(/^Restored:\s*/, '').trim() || 'Untitled version';
+    const versionEntry = {
+      code: restoredCode,
+      trigger: 'restore',
+      label: `Restored: ${baseLabel}`,
+      createdAt: new Date(),
+    };
+
+    const sketch = await Sketch.findOneAndUpdate(
+      { _id: id, userId },
+      {
+        $set: { code: restoredCode },
+        $push: { versions: { $each: [versionEntry], $slice: -MAX_VERSIONS } },
+      },
+      { new: true, select: 'code versions' }
+    );
+
+    if (!sketch) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not found',
+        message: 'Sketch not found',
+      });
+    }
+
+    bustSketchCache(userId, id);
+
+    const savedVersion = sketch.versions[sketch.versions.length - 1];
+    return res.json({
+      success: true,
+      data: {
+        code: sketch.code,
+        version: {
+          id: savedVersion._id.toString(),
+          createdAt: savedVersion.createdAt,
+          trigger: savedVersion.trigger,
+          label: savedVersion.label,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error, userId, sketchId: id, versionId }, 'Failed to restore sketch version');
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to restore version',
+      message: error.message,
+    });
+  }
+}
+
+/**
  * Delete a sketch
  * DELETE /api/sketches/:id
  */
 export async function deleteSketch(req, res) {
+  const { id } = req.params;
+  const userId = req.userId;
   try {
-    const { id } = req.params;
-    const userId = req.userId;
 
 
     const result = await Sketch.deleteOne({ _id: id, userId });
@@ -348,9 +571,9 @@ export async function deleteSketch(req, res) {
  * GET /api/sketches/:sketchId/snapshot
  */
 export async function getSketchSnapshot(req, res) {
+  const { sketchId } = req.params;
+  const userId = req.userId;
   try {
-    const { sketchId } = req.params;
-    const userId = req.userId;
 
     const sketch = await Sketch.findOne({ _id: sketchId, userId });
     if (!sketch) return res.status(404).json({ error: 'Sketch not found' });

@@ -201,6 +201,7 @@ ABSOLUTE RULES
 6. aria-* attributes on interactive elements
 
 At the end of your response add exactly:
+<!-- TITLE: Short, meaningful sketch name (3-6 words) -->
 <!-- TAGS: tag1,tag2,tag3 -->`;
 
 
@@ -218,6 +219,7 @@ RULES:
 
 At the end add:
 <!-- ASSISTANT_REPLY: Brief, warm, specific description of what changed -->
+<!-- TITLE: Short, meaningful sketch name (3-6 words) -->
 <!-- TAGS: tag1,tag2,tag3 -->`;
 
 
@@ -256,7 +258,9 @@ Think through these steps INTERNALLY — do NOT output them, output ONLY the fin
 OUTPUT: Raw JSX code only. No explanations. No markdown. No reasoning text.
 Start your response directly with the import statements or the function declaration.
 
-At the very end add: <!-- TAGS: tag1,tag2,tag3 -->`
+At the very end add:
+<!-- TITLE: Short, meaningful sketch name (3-6 words) -->
+<!-- TAGS: tag1,tag2,tag3 -->`
         },
         {
           type: "image_url",
@@ -294,6 +298,7 @@ Apply this change. Rules:
 
 At the very end add:
 <!-- ASSISTANT_REPLY: Warm, specific summary of what changed -->
+<!-- TITLE: Short, meaningful sketch name (3-6 words) -->
 <!-- TAGS: tag1,tag2,tag3 -->`
     }
   ];
@@ -323,6 +328,7 @@ INSTRUCTIONS:
 5. Return the COMPLETE updated component — raw JSX only, no explanations
 
 At the very end add:
+<!-- TITLE: Short, meaningful sketch name (3-6 words) -->
 <!-- TAGS: tag1,tag2,tag3 -->`
         },
         {

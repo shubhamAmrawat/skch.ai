@@ -442,3 +442,103 @@ export async function deleteSketch(id: string): Promise<void> {
     throw new Error(data.message || data.error || 'Failed to delete sketch');
   }
 }
+
+export interface SketchVersionMeta {
+  id: string;
+  createdAt: string;
+  trigger: 'generate' | 'iterate' | 'manual-edit' | 'restore';
+  label: string;
+}
+
+export interface SketchVersionDetail extends SketchVersionMeta {
+  code: string;
+}
+
+export interface ListSketchVersionsResponse {
+  success: boolean;
+  data?: { versions: SketchVersionMeta[] };
+  error?: string;
+  message?: string;
+}
+
+export interface GetSketchVersionResponse {
+  success: boolean;
+  data?: { version: SketchVersionDetail };
+  error?: string;
+  message?: string;
+}
+
+export interface RestoreSketchVersionResponse {
+  success: boolean;
+  data?: { code: string; version: SketchVersionMeta };
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Append a new version snapshot to a sketch's history (Phase 1).
+ */
+export async function appendSketchVersion(
+  id: string,
+  params: { code: string; trigger: 'generate' | 'iterate' | 'manual-edit' | 'restore'; label?: string }
+): Promise<{ success: boolean; data?: { version: SketchVersionMeta } }> {
+  const response = await authApiFetch(`/sketches/${id}/versions`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to save version');
+  }
+
+  return data;
+}
+
+/**
+ * List version history metadata (no code payload) for a sketch, newest first.
+ */
+export async function listSketchVersions(id: string): Promise<ListSketchVersionsResponse> {
+  const response = await authApiFetch(`/sketches/${id}/versions`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to load version history');
+  }
+
+  return data;
+}
+
+/**
+ * Fetch a single version's full code, for previewing before restore.
+ */
+export async function getSketchVersion(id: string, versionId: string): Promise<GetSketchVersionResponse> {
+  const response = await authApiFetch(`/sketches/${id}/versions/${versionId}`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to load version');
+  }
+
+  return data;
+}
+
+/**
+ * Restore a sketch's code to a prior version. Recorded as a new version entry.
+ */
+export async function restoreSketchVersion(id: string, versionId: string): Promise<RestoreSketchVersionResponse> {
+  const response = await authApiFetch(`/sketches/${id}/versions/${versionId}/restore`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Failed to restore version');
+  }
+
+  return data;
+}

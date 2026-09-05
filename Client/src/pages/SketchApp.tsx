@@ -6,7 +6,7 @@ import { WhiteboardContainer } from '../components/WhiteboardContainer';
 import type { ExportData } from '../components/WhiteboardContainer';
 import { CodePreviewPanel } from '../components/CodePreviewPanel';
 import { generateUIStreaming } from '../services/api';
-import { getSketch, getSketchSnapshot, createSketch, updateSketch, uploadSketchAssets } from '../services/sketchApi';
+import { getSketch, getSketchSnapshot, createSketch, updateSketch, uploadSketchAssets, appendSketchVersion } from '../services/sketchApi';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
 import { generateFullPageHTML } from '../utils/previewHtml';
@@ -15,7 +15,7 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { Sparkles } from 'lucide-react';
 
 // Tab type
-type TabType = 'canvas' | 'preview' | 'code' | 'chat';
+type TabType = 'canvas' | 'preview' | 'code' | 'chat' | 'history';
 
 // Conversation history entry for refine tab
 export interface ConversationEntry {
@@ -42,6 +42,17 @@ interface AppState {
   
 }
 
+function buildIterationLabel(feedback: string): string {
+  const cleaned = feedback.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return 'Iteration';
+  const MAX_LEN = 60;
+  if (cleaned.length <= MAX_LEN) return cleaned;
+  const cut = cleaned.slice(0, MAX_LEN);
+  const lastSpace = cut.lastIndexOf(' ');
+  const trimmed = lastSpace > 20 ? cut.slice(0, lastSpace) : cut;
+  return trimmed + '…';
+}
+
 export function SketchApp() {
   const [searchParams] = useSearchParams();
   const sketchIdParam = searchParams.get('sketchId');
@@ -50,6 +61,7 @@ export function SketchApp() {
   const editorRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const exportDataRef = useRef<(() => Promise<ExportData | null>) | null>(null);
   const conversationHistoryRef = useRef<ConversationEntry[]>([]);
+  const currentSketchIdRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastKnownSceneRef = useRef<{ elements: unknown[]; files: Record<string, unknown> }>({ elements: [], files: {} });
   const leftPanelRef = useRef<PanelImperativeHandle | null>(null);
@@ -137,6 +149,7 @@ export function SketchApp() {
 
   // Keep ref in sync so handleSave always has latest conversationHistory (avoids stale closure on quick Save after refine)
   conversationHistoryRef.current = state.conversationHistory;
+  currentSketchIdRef.current = state.currentSketchId;
 
   const showSplitView = state.generatedCode.length > 0 || state.isGenerating;
 
@@ -157,6 +170,11 @@ export function SketchApp() {
   }, [state.activeTab, showSplitView]);
 
   const handleGenerate = useCallback(async (editor: ExcalidrawImperativeAPI | null) => {
+    if (state.generatedCode && !currentSketchIdRef.current) {
+      addToast('error', 'Save your sketch before generating again — this lets us keep a history of your edits.');
+      return;
+    }
+
     setState((prev) => ({ ...prev, isGenerating: true, activeTab: 'preview' }));
 
     try {
@@ -268,8 +286,19 @@ export function SketchApp() {
               activeTab: 'chat',
               conversationHistory: hadExistingCode ? prev.conversationHistory : [],
               suggestedTags: result.tags ?? [],
+              currentSketchTitle: prev.currentSketchTitle || result.suggestedTitle || null,
             }));
             console.log('[App] Stream complete, tokens used:', result.usage?.totalTokens);
+
+            if (currentSketchIdRef.current) {
+              appendSketchVersion(currentSketchIdRef.current, {
+                code,
+                trigger: 'generate',
+                label: 'Regenerated from canvas',
+              }).catch((err) => {
+                console.warn('[App] Failed to save version history entry:', err);
+              });
+            }
           },
           onError: (errorMsg) => {
             setState((prev) => ({ ...prev, isGenerating: false }));
@@ -291,6 +320,11 @@ export function SketchApp() {
 
     if (!state.generatedCode || !feedback.trim()) {
       console.log('[App] Early return - missing code or feedback');
+      return;
+    }
+
+    if (!currentSketchIdRef.current) {
+      addToast('error', 'Save your sketch before refining it — this lets us keep a history of your edits.');
       return;
     }
 
@@ -348,15 +382,26 @@ export function SketchApp() {
               content: replyText,
               timestamp: new Date(),
             };
+            const newCode = result.code ?? '';
             setState((prev) => ({
               ...prev,
               isGenerating: false,
-              generatedCode: result.code ?? '',
+              generatedCode: newCode,
               activeTab: 'chat',
               conversationHistory: [...prev.conversationHistory, assistantEntry],
               suggestedTags: result.tags?.length ? result.tags : prev.suggestedTags,
             }));
             console.log('[App] Iteration stream complete, tokens:', result.usage?.totalTokens);
+
+            if (currentSketchIdRef.current) {
+              appendSketchVersion(currentSketchIdRef.current, {
+                code: newCode,
+                trigger: 'iterate',
+                label: buildIterationLabel(feedback),
+              }).catch((err) => {
+                console.warn('[App] Failed to save version history entry:', err);
+              });
+            }
           },
           onError: (errorMsg) => {
             setState((prev) => ({
@@ -393,6 +438,11 @@ export function SketchApp() {
       suggestedTags: [],
     }));
   }, []);
+
+  const handleVersionRestored = useCallback((code: string) => {
+    setState((prev) => ({ ...prev, generatedCode: code, activeTab: 'preview' }));
+    addToast('success', 'Version restored.');
+  }, [addToast]);
 
   const handleSave = useCallback(
     async (title?: string) => {
@@ -578,6 +628,7 @@ export function SketchApp() {
           tags: state.tags,
           onTagsChange: (t) => setState((prev) => ({ ...prev, tags: t })),
           suggestedTags: state.suggestedTags,
+          sketchId: state.currentSketchId,
         }}
       />
 
@@ -631,6 +682,8 @@ export function SketchApp() {
                 isGenerating={state.isGenerating}
                 conversationHistory={state.conversationHistory}
                 onIterate={handleIterate}
+                sketchId={state.currentSketchId}
+                onVersionRestored={handleVersionRestored}
               />
             ) : (
               <div className="h-full" aria-hidden />

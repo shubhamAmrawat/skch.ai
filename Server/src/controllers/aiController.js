@@ -384,7 +384,7 @@ export async function generateUIStream(req, res) {
       return res.end();
     }
 
-    const { code: codeWithoutReply, assistantReply, tags } = extractAssistantReply(fullText);
+    const { code: codeWithoutReply, assistantReply, tags, title } = extractAssistantReply(fullText);
     let cleanedCode = cleanCodeResponse(codeWithoutReply);
     cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
 
@@ -399,6 +399,7 @@ export async function generateUIStream(req, res) {
       code: cleanedCode,
       assistantReply: assistantReply || null,
       tags: tags || [],
+      suggestedTitle: title || null,
       usage,
       truncated,
     });
@@ -545,7 +546,7 @@ export async function generateUI(req, res) {
       throw new Error('No content received from AI');
     }
 
-    const { code: codeWithoutReply, assistantReply, tags } = extractAssistantReply(generatedCode);
+    const { code: codeWithoutReply, assistantReply, tags, title } = extractAssistantReply(generatedCode);
     let cleanedCode = cleanCodeResponse(codeWithoutReply);
     cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
 
@@ -560,6 +561,7 @@ export async function generateUI(req, res) {
       code: cleanedCode,
       assistantReply: assistantReply || null,
       tags: tags || [],
+      suggestedTitle: title || null,
       usage,
       truncated,
     });
@@ -664,6 +666,7 @@ function extractAssistantReply(raw) {
   let code = raw;
   let assistantReply = null;
   let tags = [];
+  let title = null;
 
   // Extract TAGS: tag1,tag2,tag3
   const tagsMatch = raw.match(/\s*<!--\s*TAGS:\s*([\s\S]*?)\s*-->/);
@@ -676,6 +679,14 @@ function extractAssistantReply(raw) {
     code = code.replace(/\s*<!--\s*TAGS:[\s\S]*?-->\s*/, '').trim();
   }
 
+  // Extract TITLE: a short AI-suggested sketch name (client only uses it to
+  // pre-fill an empty title field — never overwrites one the user already set)
+  const titleMatch = code.match(/\s*<!--\s*TITLE:\s*([\s\S]*?)\s*-->/);
+  if (titleMatch) {
+    title = titleMatch[1].trim().replace(/\s+/g, ' ').slice(0, 100) || null;
+    code = code.replace(/\s*<!--\s*TITLE:[\s\S]*?-->\s*/, '').trim();
+  }
+
   // Extract ASSISTANT_REPLY
   const replyMatch = code.match(/\s*<!--\s*ASSISTANT_REPLY:\s*([\s\S]*?)\s*-->\s*$/);
   if (replyMatch) {
@@ -683,7 +694,7 @@ function extractAssistantReply(raw) {
     code = code.replace(/\s*<!--\s*ASSISTANT_REPLY:[\s\S]*?-->\s*$/, '').trim();
   }
 
-  return { code, assistantReply, tags };
+  return { code, assistantReply, tags, title };
 }
 
 /**

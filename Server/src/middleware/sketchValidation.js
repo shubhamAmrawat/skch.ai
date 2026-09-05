@@ -100,6 +100,44 @@ export const createSketchValidation = [
 ];
 
 
+export const validateVersionId = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid sketch ID'),
+  param('versionId')
+    .isMongoId()
+    .withMessage('Invalid version ID'),
+  validate,
+];
+
+export const appendVersionValidation = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid sketch ID'),
+
+  body('code')
+    .notEmpty()
+    .withMessage('Code is required')
+    .isString()
+    .withMessage('Code must be a string')
+    .isLength({ max: 500000 })
+    .withMessage('Code is too large'),
+
+  body('trigger')
+    .isIn(['generate', 'iterate', 'manual-edit', 'restore'])
+    .withMessage('Invalid trigger type'),
+
+  body('label')
+    .optional()
+    .isString()
+    .withMessage('Label must be a string')
+    .isLength({ max: 120 })
+    .withMessage('Label cannot exceed 120 characters'),
+
+  validate,
+];
+
+
 export const updateSketchValidation = [
   body('title')
     .optional()

@@ -54,6 +54,23 @@ const sketchSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Bounded version history (Phase 1) — capped at 30 entries via $slice on write,
+    // see sketchController.js appendSketchVersion/restoreSketchVersion.
+    versions: {
+      type: [
+        {
+          code: { type: String, required: true },
+          createdAt: { type: Date, default: Date.now },
+          trigger: {
+            type: String,
+            enum: ['generate', 'iterate', 'manual-edit', 'restore'],
+            required: true,
+          },
+          label: { type: String, default: '' },
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

@@ -2,9 +2,10 @@ import { Eye, Code2, Send, Loader2, MessageSquare, User, Bot, Sparkles, Copy, Ch
 import { useState, useRef, useEffect } from 'react';
 import { LivePreview } from './LivePreview';
 import { ResizableSplitPane } from './ResizableSplitPane';
+import { VersionHistoryPanel } from './VersionHistoryPanel';
 import type { ConversationEntry } from '../pages/SketchApp';
 
-type TabType = 'canvas' | 'preview' | 'code' | 'chat';
+type TabType = 'canvas' | 'preview' | 'code' | 'chat' | 'history';
 
 interface CodePreviewPanelProps {
   activeTab: TabType;
@@ -12,6 +13,8 @@ interface CodePreviewPanelProps {
   isGenerating: boolean;
   conversationHistory: ConversationEntry[];
   onIterate?: (feedback: string) => void;
+  sketchId?: string | null;
+  onVersionRestored?: (code: string) => void;
 }
 
 export function CodePreviewPanel({
@@ -20,6 +23,8 @@ export function CodePreviewPanel({
   isGenerating,
   conversationHistory,
   onIterate,
+  sketchId,
+  onVersionRestored,
 }: CodePreviewPanelProps) {
   const [inputMessage, setInputMessage] = useState('');
 
@@ -102,6 +107,24 @@ export function CodePreviewPanel({
           minLeftWidth={35}
           maxLeftWidth={75}
         />
+      </div>
+    );
+  }
+
+  // History tab: version list + preview/restore, full width
+  if (activeTab === 'history') {
+    return (
+      <div className="h-full flex flex-col bg-slate-50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-linear-to-bl from-slate-100/30 via-transparent to-slate-100/30 pointer-events-none z-0" />
+        <div className="flex-1 overflow-hidden relative z-10 p-3">
+          {sketchId ? (
+            <VersionHistoryPanel sketchId={sketchId} onRestore={(code) => onVersionRestored?.(code)} />
+          ) : (
+            <div className="h-full flex items-center justify-center text-sm text-slate-400">
+              Save your sketch to start tracking version history.
+            </div>
+          )}
+        </div>
       </div>
     );
   }

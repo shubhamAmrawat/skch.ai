@@ -8,9 +8,13 @@ import {
   updateSketch,
   deleteSketch,
   getSketchStats,
+  appendSketchVersion,
+  listSketchVersions,
+  getSketchVersionDetail,
+  restoreSketchVersion,
 } from '../controllers/sketchController.js';
 import { uploadSketchAssets } from '../controllers/assetController.js';
-import { createSketchValidation, updateSketchValidation, validateId, validateSketchId } from '../middleware/sketchValidation.js';
+import { createSketchValidation, updateSketchValidation, validateId, validateSketchId, appendVersionValidation, validateVersionId } from '../middleware/sketchValidation.js';
 import multer from 'multer';
 
 const router = Router();
@@ -28,6 +32,12 @@ router.get('/:sketchId/snapshot',validateSketchId, getSketchSnapshot);
 router.get('/:id', validateId, getSketch);
 
 router.put('/:id', validateId , updateSketchValidation, updateSketch);
+
+// Version history (Phase 1)
+router.post('/:id/versions', appendVersionValidation, appendSketchVersion);
+router.get('/:id/versions', validateId, listSketchVersions);
+router.get('/:id/versions/:versionId', validateVersionId, getSketchVersionDetail);
+router.post('/:id/versions/:versionId/restore', validateVersionId, restoreSketchVersion);
 
 // Handle multipart uploads for sketch assets (thumbnail + snapshot).
 // We use memoryStorage so the controller can stream the files into R2.
