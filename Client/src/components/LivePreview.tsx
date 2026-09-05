@@ -11,6 +11,7 @@ export function LivePreview({ code }: LivePreviewProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const prevCodeRef = useRef<string>('');
+  const resolvedRef = useRef(false);
 
   const renderPreview = useCallback(() => {
     if (!code || !iframeRef.current) return;
@@ -35,13 +36,16 @@ export function LivePreview({ code }: LivePreviewProps) {
   useEffect(() => {
     if (!code || !iframeRef.current) return;
 
+    resolvedRef.current = false;
     renderPreview();
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'error') {
+        resolvedRef.current = true;
         setError(event.data.message);
         setIsLoading(false);
       } else if (event.data.type === 'ready') {
+        resolvedRef.current = true;
         setIsLoading(false);
         setError(null);
       }
@@ -49,9 +53,16 @@ export function LivePreview({ code }: LivePreviewProps) {
 
     window.addEventListener('message', handleMessage);
 
+    // Safety net: rendering deps (React/Babel/Tailwind) load from a CDN inside the
+    // iframe. If that's slow or blocked, no 'ready'/'error' message ever arrives, and
+    // this used to silently clear the spinner after 3s, leaving a blank white panel.
+    // Wait longer, and if still unresolved, show an actionable message instead.
     const timeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
+      if (!resolvedRef.current) {
+        setIsLoading(false);
+        setError('Preview is taking too long to load. This usually means a CDN script (React/Babel) was slow or blocked by your network. Click Retry.');
+      }
+    }, 12000);
 
     return () => {
       window.removeEventListener('message', handleMessage);

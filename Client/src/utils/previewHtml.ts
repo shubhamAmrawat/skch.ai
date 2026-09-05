@@ -91,18 +91,38 @@ export function generateFullPageHTML(code: string): string {
   <meta name="referrer" content="no-referrer-when-downgrade">
   <title>Generated UI Preview</title>
   
+  <!-- Error helper: if a CDN script below fails to load, show a clear message instead of a blank page -->
+  <script>window.__sketchLoadError = function (name) { var el = document.getElementById('root'); if (el) el.innerHTML = '<div style="color:#dc2626;padding:20px;font-family:monospace">Failed to load ' + name + ' from the CDN (network issue or an ad-blocker can cause this). Please refresh.</div>'; };</script>
+  <script>
+    window.addEventListener('error', function (event) {
+      try {
+        var msg = (event && event.error && event.error.message) || (event && event.message) || 'Unknown error while rendering the preview.';
+        var el = document.getElementById('root');
+        if (el) el.innerHTML = '<div style="color:#dc2626;padding:20px;font-family:monospace">Render error: ' + msg + '</div>';
+      } catch (e) {}
+    });
+    window.addEventListener('unhandledrejection', function (event) {
+      try {
+        var reason = event && event.reason;
+        var msg = (reason && reason.message) || String(reason) || 'Unknown promise rejection while rendering the preview.';
+        var el = document.getElementById('root');
+        if (el) el.innerHTML = '<div style="color:#dc2626;padding:20px;font-family:monospace">Render error: ' + msg + '</div>';
+      } catch (e) {}
+    });
+  </script>
+  
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com" onerror="window.__sketchLoadError('Tailwind')"></script>
   
   <!-- React -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" onerror="window.__sketchLoadError('React')"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" onerror="window.__sketchLoadError('ReactDOM')"></script>
   
   <!-- Babel for JSX transpilation -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.28.4/babel.min.js" onerror="window.__sketchLoadError('Babel')"></script>
   
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.41.0/dist/umd/lucide.min.js" onerror="window.__sketchLoadError('Lucide')"></script>
   
   <style>
     * {

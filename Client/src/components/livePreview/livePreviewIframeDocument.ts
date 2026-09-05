@@ -117,11 +117,27 @@ export function generateIframeDocumentHtml(
   ${isGallery ? '<script>window.__SKETCH2CODE_GALLERY__=true;</script>' : ''}
   ${isGallery ? `<script>(function(){var w=console.warn;console.warn=function(){var a=arguments[0];if(typeof a==='string'&&(a.indexOf('cdn.tailwindcss.com')!==-1||a.indexOf('in-browser Babel')!==-1||a.indexOf('Babel transformer')!==-1))return;w.apply(console,arguments);};})();</script>` : ''}
   
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script>window.__sketchLoadError = function (name) { try { window.parent.postMessage({ type: 'error', message: 'Failed to load ' + name + ' from the CDN (network issue or an ad-blocker can cause this). Click Retry.' }, '*'); } catch (e) {} };</script>
+  <script>
+    window.addEventListener('error', function (event) {
+      try {
+        var msg = (event && event.error && event.error.message) || (event && event.message) || 'Unknown error while rendering the preview.';
+        window.parent.postMessage({ type: 'error', message: msg }, '*');
+      } catch (e) {}
+    });
+    window.addEventListener('unhandledrejection', function (event) {
+      try {
+        var reason = event && event.reason;
+        var msg = (reason && reason.message) || String(reason) || 'Unknown promise rejection while rendering the preview.';
+        window.parent.postMessage({ type: 'error', message: msg }, '*');
+      } catch (e) {}
+    });
+  </script>
+  <script src="https://cdn.tailwindcss.com" onerror="window.__sketchLoadError('Tailwind')"></script>
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" onerror="window.__sketchLoadError('React')"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" onerror="window.__sketchLoadError('ReactDOM')"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.28.4/babel.min.js" onerror="window.__sketchLoadError('Babel')"></script>
+  <script src="https://unpkg.com/lucide@1.41.0/dist/umd/lucide.min.js" onerror="window.__sketchLoadError('Lucide')"></script>
   
   <style>
     * {

@@ -163,6 +163,15 @@ export function ComponentLibraryPage() {
             }
           },
           onDone: (result) => {
+            if (result.truncated) {
+              setIsGenerating(false);
+              addToast(
+                'error',
+                "The AI response was cut off before it finished (too complex for one pass). Your previous version was kept — try again, or ask for a smaller change."
+              );
+              return;
+            }
+
             setCode(result.code ?? accumulated);
             setMessages((prev) => [...prev, {
               role: 'assistant',

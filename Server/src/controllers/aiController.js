@@ -284,13 +284,16 @@ export async function generateUIStream(req, res) {
 
     let fullText = '';
     let usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    // true if the provider stopped because it hit the token limit, not because it
+    // finished naturally — used to warn instead of silently rendering broken JSX.
+    let truncated = false;
 
     if (isClaudeModel(model)) {
       const client = getAnthropicClient();
       const { system, messages: anthropicMessages } = toAnthropicFormat(messages);
       const stream = client.messages.stream({
         model,
-        max_tokens: 4096,
+        max_tokens: 8192,
         system,
         messages: anthropicMessages,
       });
@@ -301,6 +304,7 @@ export async function generateUIStream(req, res) {
       });
 
       const message = await stream.finalMessage();
+      truncated = message.stop_reason === 'max_tokens';
       if (message.usage) {
         usage = {
           promptTokens: message.usage.input_tokens,
@@ -336,6 +340,7 @@ export async function generateUIStream(req, res) {
 
       // Get final usage from aggregated response
       const finalResponse = await streamResult.response;
+      truncated = finalResponse.candidates?.[0]?.finishReason === 'MAX_TOKENS';
       if (finalResponse.usageMetadata) {
         usage = {
           promptTokens: finalResponse.usageMetadata.promptTokenCount || 0,
@@ -347,17 +352,21 @@ export async function generateUIStream(req, res) {
       const client = getOpenAIClient();
       const stream = await client.chat.completions.create({
         model,
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0.3,
         messages,
         stream: true,
       });
 
+      let openaiFinishReason = null;
       for await (const chunk of stream) {
         const delta = chunk.choices?.[0]?.delta?.content;
         if (delta) {
           fullText += delta;
           sendSSE(res, { type: 'delta', content: delta });
+        }
+        if (chunk.choices?.[0]?.finish_reason) {
+          openaiFinishReason = chunk.choices[0].finish_reason;
         }
         if (chunk.usage) {
           usage = {
@@ -367,6 +376,7 @@ export async function generateUIStream(req, res) {
           };
         }
       }
+      truncated = openaiFinishReason === 'length';
     }
 
     if (!fullText) {
@@ -378,7 +388,11 @@ export async function generateUIStream(req, res) {
     let cleanedCode = cleanCodeResponse(codeWithoutReply);
     cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
 
-    console.log(`[AI] Stream complete, ${cleanedCode.length} characters, tags:`, tags);
+    if (truncated) {
+      console.warn(`[AI] Stream complete but generation was TRUNCATED at the token limit (model: ${model}) — code is likely incomplete/invalid`);
+    } else {
+      console.log(`[AI] Stream complete, ${cleanedCode.length} characters, tags:`, tags);
+    }
 
     sendSSE(res, {
       type: 'done',
@@ -386,6 +400,7 @@ export async function generateUIStream(req, res) {
       assistantReply: assistantReply || null,
       tags: tags || [],
       usage,
+      truncated,
     });
     res.end();
   } catch (error) {
@@ -460,18 +475,20 @@ export async function generateUI(req, res) {
 
     let generatedCode;
     let usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    let truncated = false;
 
     if (isClaudeModel(model)) {
       const client = getAnthropicClient();
       const { system, messages: anthropicMessages } = toAnthropicFormat(messages);
       const response = await client.messages.create({
         model,
-        max_tokens: 4096,
+        max_tokens: 8192,
         system,
         messages: anthropicMessages,
       });
       const textBlock = response.content?.find((b) => b.type === 'text');
       generatedCode = textBlock?.text;
+      truncated = response.stop_reason === 'max_tokens';
       if (response.usage) {
         usage = {
           promptTokens: response.usage.input_tokens,
@@ -497,6 +514,7 @@ export async function generateUI(req, res) {
         generationConfig,
       });
       generatedCode = result.response.text();
+      truncated = result.response.candidates?.[0]?.finishReason === 'MAX_TOKENS';
       if (result.response.usageMetadata) {
         usage = {
           promptTokens: result.response.usageMetadata.promptTokenCount || 0,
@@ -508,11 +526,12 @@ export async function generateUI(req, res) {
       const client = getOpenAIClient();
       const completion = await client.chat.completions.create({
         model,
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0.3,
         messages,
       });
       generatedCode = completion.choices[0]?.message?.content;
+      truncated = completion.choices?.[0]?.finish_reason === 'length';
       if (completion.usage) {
         usage = {
           promptTokens: completion.usage.prompt_tokens,
@@ -530,7 +549,11 @@ export async function generateUI(req, res) {
     let cleanedCode = cleanCodeResponse(codeWithoutReply);
     cleanedCode = replaceBrokenPlaceholderUrls(cleanedCode);
 
-    console.log(`[AI] Successfully generated ${cleanedCode.length} characters of code`);
+    if (truncated) {
+      console.warn(`[AI] Generation was TRUNCATED at the token limit (model: ${model}) — code is likely incomplete/invalid`);
+    } else {
+      console.log(`[AI] Successfully generated ${cleanedCode.length} characters of code`);
+    }
 
     return res.json({
       success: true,
@@ -538,6 +561,7 @@ export async function generateUI(req, res) {
       assistantReply: assistantReply || null,
       tags: tags || [],
       usage,
+      truncated,
     });
 
   } catch (error) {

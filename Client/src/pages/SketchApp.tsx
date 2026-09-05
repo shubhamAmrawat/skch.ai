@@ -248,6 +248,19 @@ export function SketchApp() {
               return;
             }
 
+            if (result.truncated) {
+              setState((prev) => ({
+                ...prev,
+                isGenerating: false,
+                generatedCode: '',
+              }));
+              addToast(
+                'error',
+                "The AI response was cut off before it finished (the design was too complex for one pass). Try again, or simplify the sketch and generate in smaller pieces."
+              );
+              return;
+            }
+
             setState((prev) => ({
               ...prev,
               isGenerating: false,
@@ -318,6 +331,15 @@ export function SketchApp() {
             setState((prev) => ({ ...prev, generatedCode: accumulatedCode }));
           },
           onDone: (result) => {
+            if (result.truncated) {
+              setState((prev) => ({ ...prev, isGenerating: false }));
+              addToast(
+                'error',
+                "The AI response was cut off before it finished (the change was too complex for one pass). Your previous version was kept — try again, or break the request into smaller steps."
+              );
+              return;
+            }
+
             const replyText =
               result.assistantReply?.trim() ||
               "I've applied your changes. Check the Preview tab.";
