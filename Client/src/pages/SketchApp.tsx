@@ -148,8 +148,10 @@ export function SketchApp() {
   }, [sketchIdParam, isAuthenticated, addToast]);
 
   // Keep ref in sync so handleSave always has latest conversationHistory (avoids stale closure on quick Save after refine)
-  conversationHistoryRef.current = state.conversationHistory;
-  currentSketchIdRef.current = state.currentSketchId;
+  useEffect(() => {
+    conversationHistoryRef.current = state.conversationHistory;
+    currentSketchIdRef.current = state.currentSketchId;
+  }, [state.conversationHistory, state.currentSketchId]);
 
   const showSplitView = state.generatedCode.length > 0 || state.isGenerating;
 
@@ -295,9 +297,11 @@ export function SketchApp() {
                 code,
                 trigger: 'generate',
                 label: 'Regenerated from canvas',
-              }).catch((err) => {
-                console.warn('[App] Failed to save version history entry:', err);
-              });
+              })
+                .then(() => addToast('success', 'Changes saved'))
+                .catch((err) => {
+                  console.warn('[App] Failed to save version history entry:', err);
+                });
             }
           },
           onError: (errorMsg) => {
@@ -398,9 +402,11 @@ export function SketchApp() {
                 code: newCode,
                 trigger: 'iterate',
                 label: buildIterationLabel(feedback),
-              }).catch((err) => {
-                console.warn('[App] Failed to save version history entry:', err);
-              });
+              })
+                .then(() => addToast('success', 'Changes saved'))
+                .catch((err) => {
+                  console.warn('[App] Failed to save version history entry:', err);
+                });
             }
           },
           onError: (errorMsg) => {
