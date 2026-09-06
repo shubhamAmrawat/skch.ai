@@ -627,16 +627,13 @@ export async function healthCheck(req, res) {
     service: 'sketch2code-ai',
     timestamp: new Date().toISOString(),
     openai: {
-      configured: hasOpenAI,
-      keyPrefix: hasOpenAI ? process.env.OPENAI_API_KEY.substring(0, 7) + '...' : null
+      configured: hasOpenAI
     },
     anthropic: {
-      configured: hasAnthropic,
-      keyPrefix: hasAnthropic ? process.env.ANTHROPIC_API_KEY.substring(0, 7) + '...' : null
+      configured: hasAnthropic
     },
     gemini: {
-      configured: hasGemini,
-      keyPrefix: hasGemini ? process.env.GEMINI_API_KEY.substring(0, 7) + '...' : null
+      configured: hasGemini
     }
   });
 }

@@ -121,7 +121,7 @@ export function LivePreview({ code }: LivePreviewProps) {
         ref={iframeRef}
         title="Live Preview"
         className="w-full h-full border-0"
-        sandbox="allow-scripts allow-same-origin allow-popups"
+        sandbox="allow-scripts allow-popups"
       />
     </div>
   );

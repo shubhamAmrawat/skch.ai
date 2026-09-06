@@ -5,7 +5,7 @@
  * Only gallery-error messages are posted so the parent can surface render failures.
  */
 
-import { prepareCode } from './livePreview/livePreviewIframeDocument';
+import { prepareCode, getPreviewCdnScriptTags, LUCIDE_ICON_SHIM_SCRIPT } from '../utils/iframeDocumentShared';
 
 export function generateGalleryIframeHtml(code: string, galleryId: number): string {
   const cleanedCode = prepareCode(code);
@@ -48,11 +48,7 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
       } catch (e) {}
     });
   </script>
-  <script src="https://cdn.tailwindcss.com" onerror="window.__sketchLoadError('Tailwind')"></script>
-  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" onerror="window.__sketchLoadError('React')"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" onerror="window.__sketchLoadError('ReactDOM')"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.28.4/babel.min.js" onerror="window.__sketchLoadError('Babel')"></script>
-  <script src="https://unpkg.com/lucide@1.41.0/dist/umd/lucide.min.js" onerror="window.__sketchLoadError('Lucide')"></script>
+  ${getPreviewCdnScriptTags()}
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,27 +73,7 @@ export function generateGalleryIframeHtml(code: string, galleryId: number): stri
 
   <script type="text/babel" data-presets="react">
     // ── Lucide icon shim ──────────────────────────────────────────────────────
-    const _iconCache = {};
-    window.LucideIcons = new Proxy(_iconCache, {
-      get(target, prop) {
-        if (typeof prop !== 'string') return () => null;
-        if (!target[prop]) {
-          target[prop] = function Icon({ className = '', size = 24, ...props }) {
-            const ref = React.useRef(null);
-            const kebab = prop.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-            React.useEffect(() => {
-              if (!ref.current || !window.lucide?.createIcons) return;
-              ref.current.innerHTML = '<i data-lucide="' + kebab + '"></i>';
-              window.lucide.createIcons({ icons: window.lucide.icons, root: ref.current, attrs: { width: String(size), height: String(size) } });
-              const svg = ref.current.querySelector('svg');
-              if (svg && className) className.split(' ').filter(Boolean).forEach(c => svg.classList.add(c));
-            }, []);
-            return React.createElement('span', { ref, className: 'inline-flex items-center justify-center', ...props });
-          };
-        }
-        return target[prop];
-      }
-    });
+    ${LUCIDE_ICON_SHIM_SCRIPT}
 
     // ── React hooks globals ───────────────────────────────────────────────────
     const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer } = React;

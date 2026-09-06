@@ -1,81 +1,7 @@
 /**
  * Utility functions for generating preview HTML
  */
-
-/**
- * Prepare the code for execution in the browser
- */
-function prepareCode(code: string): string {
-  let prepared = code;
-
-  // Remove ALL import statements from 'react' (handles various patterns)
-  prepared = prepared.replace(
-    /import\s+.*?\s+from\s+['"]react['"];?\s*/g,
-    ''
-  );
-
-  // Replace lucide-react imports with window.LucideIcons references
-  prepared = prepared.replace(
-    /import\s+{([^}]*)}\s+from\s+['"]lucide-react['"];?\s*/g,
-    (_, imports) => {
-      const iconList = imports.split(',').map((s: string) => s.trim()).filter(Boolean);
-      return iconList.map((iconSpecifier: string) => {
-        const [imported, local] = iconSpecifier.split(/\s+as\s+/).map((s) => s.trim());
-        const localName = local || imported;
-        return `const ${localName} = window.LucideIcons['${imported}'];`;
-      }).join('\n') + '\n';
-    }
-  );
-
-  // Remove any other import statements (for safety)
-  prepared = prepared.replace(/import\s+.*?\s+from\s+['"][^'"]+['"];?\s*/g, '');
-
-  // Remove side-effect imports (e.g., import 'tailwindcss/tailwind.css')
-  prepared = prepared.replace(/import\s+['"][^'"]+['"];?\s*/g, '');
-
-  // Handle: export default function () { ... } (anonymous default function)
-  prepared = prepared.replace(
-    /export\s+default\s+function\s*\(/g,
-    'exports.default = function('
-  );
-
-  // Handle: export default () => ... and export default props => ...
-  prepared = prepared.replace(
-    /export\s+default\s+((?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)/g,
-    'exports.default = $1'
-  );
-
-  // Handle default export with function declaration
-  prepared = prepared.replace(
-    /export\s+default\s+function\s+(\w+)/g,
-    'const exports = {}; function $1'
-  );
-
-  // Handle "export default ComponentName;" at end of file
-  prepared = prepared.replace(
-    /export\s+default\s+(\w+);?\s*$/gm,
-    'exports.default = $1;'
-  );
-
-  // Handle inline "export default" (arrow functions, etc.)
-  prepared = prepared.replace(
-    /export\s+default\s+/g,
-    'exports.default = '
-  );
-
-  // Add exports object if not present
-  if (!prepared.includes('const exports = {}')) {
-    prepared = 'const exports = {};\n' + prepared;
-  }
-
-  // Ensure the component is assigned to exports.default
-  const functionMatch = prepared.match(/(?:function|const)\s+(\w+)\s*(?:=\s*\([^)]*\)\s*=>|\([^)]*\))/);
-  if (functionMatch && !prepared.includes('exports.default')) {
-    prepared += `\nexports.default = ${functionMatch[1]};`;
-  }
-
-  return prepared;
-}
+import { prepareCode, getPreviewCdnScriptTags, LUCIDE_ICON_SHIM_SCRIPT } from './iframeDocumentShared';
 
 /**
  * Generate a full standalone HTML page for opening in a new tab
@@ -111,18 +37,7 @@ export function generateFullPageHTML(code: string): string {
     });
   </script>
   
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com" onerror="window.__sketchLoadError('Tailwind')"></script>
-  
-  <!-- React -->
-  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" onerror="window.__sketchLoadError('React')"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" onerror="window.__sketchLoadError('ReactDOM')"></script>
-  
-  <!-- Babel for JSX transpilation -->
-  <script src="https://unpkg.com/@babel/standalone@7.28.4/babel.min.js" onerror="window.__sketchLoadError('Babel')"></script>
-  
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@1.41.0/dist/umd/lucide.min.js" onerror="window.__sketchLoadError('Lucide')"></script>
+  ${getPreviewCdnScriptTags()}
   
   <style>
     * {
@@ -180,47 +95,8 @@ export function generateFullPageHTML(code: string): string {
   <div id="root"></div>
   
   <script type="text/babel" data-presets="react">
-    // Create mock lucide-react icons
-    const createIcon = (name) => {
-      return function Icon({ className = '', size = 24, ...props }) {
-        const iconElement = React.useRef(null);
-        const normalizeIconName = (iconName) =>
-          iconName
-            .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-            .replace(/[ _]+/g, '-')
-            .toLowerCase();
-        
-        React.useEffect(() => {
-          if (iconElement.current && window.lucide?.createIcons && window.lucide?.icons) {
-            const iconName = normalizeIconName(name);
-            iconElement.current.innerHTML = '<i data-lucide="' + iconName + '"></i>';
-            window.lucide.createIcons({
-              icons: window.lucide.icons,
-              root: iconElement.current,
-              attrs: { width: String(size), height: String(size) }
-            });
-
-            const renderedSvg = iconElement.current.querySelector('svg');
-            if (renderedSvg && className) {
-              className.split(' ').filter(Boolean).forEach((c) => renderedSvg.classList.add(c));
-            }
-          }
-        }, [className, name, size]);
-        
-        return React.createElement('span', { ref: iconElement, className: 'inline-flex items-center justify-center', ...props });
-      };
-    };
-
-    const iconCache = {};
-    window.LucideIcons = new Proxy(iconCache, {
-      get(target, prop) {
-        if (typeof prop !== 'string') return createIcon('circle');
-        if (!target[prop]) {
-          target[prop] = createIcon(prop);
-        }
-        return target[prop];
-      }
-    });
+    // Mock lucide-react icons (shared shim)
+    ${LUCIDE_ICON_SHIM_SCRIPT}
     
     // Make React hooks available globally
     const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer } = React;

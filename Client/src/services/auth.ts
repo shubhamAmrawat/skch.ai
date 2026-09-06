@@ -71,14 +71,6 @@ export const tokenStorage = {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
   },
 
-  getRefreshToken: (): string | null => {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-  },
-
-  setRefreshToken: (token: string): void => {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
-  },
-
   getUser: (): User | null => {
     const user = localStorage.getItem(USER_KEY);
     return user ? JSON.parse(user) : null;
@@ -207,7 +199,6 @@ export async function register(data: RegisterData): Promise<AuthResponse> {
 
     if (result.success && result.data) {
       tokenStorage.setAccessToken(result.data.accessToken);
-      tokenStorage.setRefreshToken(result.data.refreshToken);
       tokenStorage.setUser(result.data.user);
     }
 
@@ -238,7 +229,6 @@ export async function login(data: LoginData): Promise<AuthResponse> {
 
     if (result.success && result.data) {
       tokenStorage.setAccessToken(result.data.accessToken);
-      tokenStorage.setRefreshToken(result.data.refreshToken);
       tokenStorage.setUser(result.data.user);
     }
 
@@ -258,11 +248,8 @@ export async function login(data: LoginData): Promise<AuthResponse> {
  */
 export async function logout(): Promise<void> {
   try {
-    const refreshToken = tokenStorage.getRefreshToken();
-
     await authFetch('/logout', {
       method: 'POST',
-      body: JSON.stringify({ refreshToken }),
     });
   } catch (error) {
     console.error('[Auth] Logout error:', error);
@@ -276,16 +263,9 @@ export async function logout(): Promise<void> {
  */
 export async function refreshAccessToken(): Promise<boolean> {
   try {
-    const refreshToken = tokenStorage.getRefreshToken();
-
-    if (!refreshToken) {
-      return false;
-    }
-
     const response = await fetch(`${API_BASE_URL}/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
       credentials: 'include',
     });
 
@@ -293,7 +273,6 @@ export async function refreshAccessToken(): Promise<boolean> {
 
     if (result.success && result.data) {
       tokenStorage.setAccessToken(result.data.accessToken);
-      tokenStorage.setRefreshToken(result.data.refreshToken);
       return true;
     }
 
@@ -484,7 +463,6 @@ export async function loginWithGoogle(token: string): Promise<AuthResponse> {
 
     if (result.success && result.data) {
       tokenStorage.setAccessToken(result.data.accessToken);
-      tokenStorage.setRefreshToken(result.data.refreshToken);
       tokenStorage.setUser(result.data.user);
     }
 

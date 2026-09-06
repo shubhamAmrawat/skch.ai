@@ -212,7 +212,7 @@ function ComparePreview({ code, loading }: ComparePreviewProps) {
             transform: `scale(${scale})`,
             transformOrigin: 'center center',
           }}
-          sandbox="allow-scripts allow-same-origin allow-popups"
+          sandbox="allow-scripts allow-popups"
         />
       )}
     </div>

@@ -3,6 +3,7 @@
  * `editor` — fixed viewport behavior (min-height 100vh), for editor/detail panels.
  * `gallery` — intrinsic document height, posts height to parent to avoid iframe scrollbars.
  */
+import { prepareCode, getPreviewCdnScriptTags, LUCIDE_ICON_SHIM_SCRIPT } from '../../utils/iframeDocumentShared';
 
 export type LivePreviewIframeVariant = 'editor' | 'gallery';
 
@@ -133,11 +134,7 @@ export function generateIframeDocumentHtml(
       } catch (e) {}
     });
   </script>
-  <script src="https://cdn.tailwindcss.com" onerror="window.__sketchLoadError('Tailwind')"></script>
-  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" onerror="window.__sketchLoadError('React')"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" onerror="window.__sketchLoadError('ReactDOM')"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.28.4/babel.min.js" onerror="window.__sketchLoadError('Babel')"></script>
-  <script src="https://unpkg.com/lucide@1.41.0/dist/umd/lucide.min.js" onerror="window.__sketchLoadError('Lucide')"></script>
+  ${getPreviewCdnScriptTags()}
   
   <style>
     * {
@@ -180,46 +177,7 @@ export function generateIframeDocumentHtml(
   <div id="root"></div>
   
   <script type="text/babel" data-presets="react">
-    const createIcon = (name) => {
-      return function Icon({ className = '', size = 24, ...props }) {
-        const iconElement = React.useRef(null);
-        const normalizeIconName = (iconName) =>
-          iconName
-            .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-            .replace(/[ _]+/g, '-')
-            .toLowerCase();
-        
-        React.useEffect(() => {
-          if (iconElement.current && window.lucide?.createIcons && window.lucide?.icons) {
-            const iconName = normalizeIconName(name);
-            iconElement.current.innerHTML = '<i data-lucide="' + iconName + '"></i>';
-            window.lucide.createIcons({
-              icons: window.lucide.icons,
-              root: iconElement.current,
-              attrs: { width: String(size), height: String(size) }
-            });
-
-            const renderedSvg = iconElement.current.querySelector('svg');
-            if (renderedSvg && className) {
-              className.split(' ').filter(Boolean).forEach((c) => renderedSvg.classList.add(c));
-            }
-          }
-        }, [className, name, size]);
-        
-        return React.createElement('span', { ref: iconElement, className: 'inline-flex items-center justify-center', ...props });
-      };
-    };
-
-    const iconCache = {};
-    window.LucideIcons = new Proxy(iconCache, {
-      get(target, prop) {
-        if (typeof prop !== 'string') return createIcon('circle');
-        if (!target[prop]) {
-          target[prop] = createIcon(prop);
-        }
-        return target[prop];
-      }
-    });
+    ${LUCIDE_ICON_SHIM_SCRIPT}
     
     const { useState, useEffect, useCallback, useMemo, useRef, useContext, useReducer } = React;
     
@@ -352,90 +310,3 @@ export function generateIframeDocumentHtml(
 `;
 }
 
-export function prepareCode(code: string): string {
-  let prepared = code;
-
-  // Remove React imports
-  prepared = prepared.replace(
-    /import\s+.*?\s+from\s+['"]react['"];?\s*/g,
-    ''
-  );
-
-  // Transform lucide-react imports to use window.LucideIcons proxy
-  prepared = prepared.replace(
-    /import\s+{([^}]*)}\s+from\s+['"]lucide-react['"];?\s*/g,
-    (_, imports) => {
-      const iconList = imports.split(',').map((s: string) => s.trim()).filter(Boolean);
-      return iconList.map((iconSpecifier: string) => {
-        const [imported, local] = iconSpecifier.split(/\s+as\s+/).map((s) => s.trim());
-        const localName = local || imported;
-        return `const ${localName} = window.LucideIcons['${imported}'];`;
-      }).join('\n') + '\n';
-    }
-  );
-
-  // Remove all remaining imports
-  prepared = prepared.replace(/import\s+.*?\s+from\s+['"][^'"]+['"];?\s*/g, '');
-  prepared = prepared.replace(/import\s+['"][^'"]+['"];?\s*/g, '');
-
-  // Extract component name from common default-export forms:
-  // - export default function Foo() {}
-  // - export default const Foo = ...
-  // - export default Foo;
-  let componentName = '';
-  const nameMatch = prepared.match(/export\s+default\s+(?:function|const)?\s*(\w+)/);
-  if (nameMatch) {
-    componentName = nameMatch[1];
-  }
-
-  // Handle: export default function () { ... } (anonymous default function)
-  prepared = prepared.replace(
-    /export\s+default\s+function\s*\(/g,
-    'exports.default = function('
-  );
-
-  // Handle: export default () => ... and export default props => ...
-  prepared = prepared.replace(
-    /export\s+default\s+((?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)/g,
-    'exports.default = $1'
-  );
-
-  // Transform: export default function Foo() { → function Foo() {
-  prepared = prepared.replace(
-    /export\s+default\s+function\s+/g,
-    'function '
-  );
-
-  // Transform: export default const Foo = → const Foo = 
-  prepared = prepared.replace(
-    /export\s+default\s+const\s+/g,
-    'const '
-  );
-
-  // Transform: export default Foo; → exports.default = Foo;
-  prepared = prepared.replace(
-    /export\s+default\s+(\w+);?\s*$/gm,
-    'exports.default = $1;'
-  );
-
-  // Remove other export default patterns
-  prepared = prepared.replace(/export\s+default\s+/g, '');
-
-  // Initialize exports object at top
-  if (!prepared.includes('const exports = {}') && !prepared.includes('var exports = {}')) {
-    prepared = 'const exports = {};\n' + prepared;
-  }
-
-  // If we found a component name, explicitly export it
-  if (componentName) {
-    prepared += `\nexports.default = ${componentName};`;
-  }
-
-  // Final fallback: if we still don't have exports.default, use first declared component-like symbol.
-  const functionMatch = prepared.match(/(?:function|const)\s+(\w+)\s*(?:=\s*\([^)]*\)\s*=>|\([^)]*\))/);
-  if (functionMatch && !prepared.includes('exports.default')) {
-    prepared += `\nexports.default = ${functionMatch[1]};`;
-  }
-
-  return prepared;
-}
